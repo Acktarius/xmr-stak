@@ -1,4 +1,3 @@
-
 <table>
     <tr>
         <td align="center"><a href=https://github.com/fireice-uk/xmr-stak/tree/xmr-stak-rx/doc/README.md><img src="_img/xmr-stak-rx-btn-inactive.png"></a></td>
@@ -55,7 +54,7 @@ If your preferred coin is not listed, you can choose one of the following mining
 | --- | --- | --- | --- | 
 | cryptonight_turtle  | cryptonight_lite  | cryptonight  | cryptonight_bittube2  | 
 | ---  | cryptonight_lite_v7  | cryptonight_gpu  | cryptonight_haven  | 
-| ---  | ---  | cryptonight_conceal  | cryptonight_heavy  | 
+| ---  | ---  | ---  | cryptonight_heavy  | 
 | ---  | ---  | cryptonight_r  | ---  | 
 | ---  | ---  | cryptonight_masari (used in 2018)  | ---  | 
 | ---  | ---  | cryptonight_v8_reversewaltz  | ---  | 

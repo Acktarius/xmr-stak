@@ -611,21 +611,6 @@ inline __m128 _mm_set1_ps_epi32(uint32_t x)
 	return _mm_castsi128_ps(_mm_set1_epi32(x));
 }
 
-inline void cryptonight_conceal_tweak(__m128i& cx, __m128& conc_var)
-{
-	__m128 r = _mm_cvtepi32_ps(cx);
-	__m128 c_old = conc_var;
-	r = _mm_add_ps(r, conc_var);
-	r = _mm_mul_ps(r, _mm_mul_ps(r, r));
-	r = _mm_and_ps(_mm_set1_ps_epi32(0x807FFFFF), r);
-	r = _mm_or_ps(_mm_set1_ps_epi32(0x40000000), r);
-	conc_var = _mm_add_ps(conc_var, r);
-
-	c_old = _mm_and_ps(_mm_set1_ps_epi32(0x807FFFFF), c_old);
-	c_old = _mm_or_ps(_mm_set1_ps_epi32(0x40000000), c_old);
-	__m128 nc = _mm_mul_ps(c_old, _mm_set1_ps(536870880.0f));
-	cx = _mm_xor_si128(cx, _mm_cvttps_epi32(nc));
-}
 
 #define CN_MONERO_V8_SHUFFLE_0(n, l0, idx0, ax0, bx0, bx1, cx)                              \
 	/* Shuffle the other 3x16 byte chunks in the current 64-byte cache line */              \
@@ -746,11 +731,7 @@ inline void cryptonight_conceal_tweak(__m128i& cx, __m128& conc_var)
 	__m128i bx1;                                                                                                                                                                         \
 	__m128i division_result_xmm;                                                                                                                                                         \
 	__m128 conc_var;                                                                                                                                                                     \
-	if(ALGO == cryptonight_conceal)                                                                                                                                                      \
-	{                                                                                                                                                                                    \
-		set_float_rounding_mode_nearest();                                                                                                                                               \
-		conc_var = _mm_setzero_ps();                                                                                                                                                     \
-	}                                                                                                                                                                                    \
+	                                                                                                                                                                                 \
 	GetOptimalSqrtType_t<N> sqrt_result;                                                                                                                                                 \
 	uint32_t cn_r_data[9];                                                                                                                                                               \
 	/* END cryptonight_monero_v8 variables */                                                                                                                                            \
@@ -781,8 +762,6 @@ inline void cryptonight_conceal_tweak(__m128i& cx, __m128& conc_var)
 	__m128i cx;                                                                \
 	ptr0 = (__m128i*)&l0[idx0 & MASK];                                         \
 	cx = _mm_load_si128(ptr0);                                                 \
-	if(ALGO == cryptonight_conceal)                                            \
-		cryptonight_conceal_tweak(cx, conc_var);                               \
 	if(ALGO == cryptonight_bittube2)                                           \
 	{                                                                          \
 		cx = aes_round_bittube2(cx, ax0);                                      \

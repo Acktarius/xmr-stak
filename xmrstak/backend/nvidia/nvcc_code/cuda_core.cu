@@ -504,13 +504,6 @@ __launch_bounds__(XMR_STAK_THREADS * 4)
 	uint32_t t1[2], t2[2], res;
 
 	float conc_var;
-	if(ALGO == cryptonight_conceal)
-	{
-		if(partidx != 0)
-			conc_var = int_as_float(*(d_ctx_b + threads * 4 + thread * 4 + sub));
-		else
-			conc_var = 0.0f;
-	}
 
 	uint32_t tweak1_2[2];
 	if(ALGO == cryptonight_monero || ALGO == cryptonight_aeon || ALGO == cryptonight_ipbc || ALGO == cryptonight_stellite || ALGO == cryptonight_masari || ALGO == cryptonight_bittube2)
@@ -576,20 +569,6 @@ __launch_bounds__(XMR_STAK_THREADS * 4)
 			{
 				uint32_t x_0 = loadGlobal32<uint32_t>(long_state + j);
 
-				if(ALGO == cryptonight_conceal)
-				{
-					float r = int2float((int32_t)x_0);
-					float c_old = conc_var;
-
-					r += conc_var;
-					r = r * r * r;
-					r = int_as_float((float_as_int(r) & 0x807FFFFF) | 0x40000000);
-					conc_var += r;
-
-					c_old = int_as_float((float_as_int(c_old) & 0x807FFFFF) | 0x40000000);
-					c_old *= 536870880.0f;
-					x_0 = (uint32_t)(((int32_t)x_0) ^ ((int32_t)c_old));
-				}
 
 				const uint32_t x_1 = shuffle<4>(sPtr, sub, x_0, sub + 1);
 				const uint32_t x_2 = shuffle<4>(sPtr, sub, x_0, sub + 2);
@@ -692,8 +671,6 @@ __launch_bounds__(XMR_STAK_THREADS * 4)
 		if(ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast)
 			if(sub & 1)
 				*(d_ctx_b + threads * 4 + thread) = idx0;
-		if(ALGO == cryptonight_conceal)
-			*(d_ctx_b + threads * 4 + thread * 4 + sub) = float_as_int(conc_var);
 	}
 }
 
@@ -1068,9 +1045,6 @@ void cryptonight_core_cpu_hash(nvid_ctx* ctx, const xmrstak_algo& miner_algo, ui
 
 		cryptonight_core_gpu_hash_gpu<cryptonight_gpu, 0>,
 		cryptonight_core_gpu_hash_gpu<cryptonight_gpu, 1>,
-
-		cryptonight_core_gpu_hash<cryptonight_conceal, 0>,
-		cryptonight_core_gpu_hash<cryptonight_conceal, 1>,
 
 		cryptonight_core_gpu_hash<cryptonight_r_wow, 0>,
 		cryptonight_core_gpu_hash<cryptonight_r_wow, 1>,

@@ -103,6 +103,7 @@ xmrstak::coin_selection coins[] = {
 	// name, userpool, devpool, default_pool_suggestion
 	{"bbscoin", {POW(cryptonight_aeon)}, {POW(cryptonight_aeon)}, nullptr},
 	{"bittube", {POW(cryptonight_bittube2)}, {POW(cryptonight_gpu)}, "mining.bit.tube:13333"},
+	{"conceal", {POW(cryptonight_gpu)}, {POW(cryptonight_gpu)}, "pool.conceal.network:3333"},
 	{"cryptonight", {POW(cryptonight)}, {POW(cryptonight_gpu)}, nullptr},
 	{"cryptonight_bittube2", {POW(cryptonight_bittube2)}, {POW(cryptonight_gpu)}, nullptr},
 	{"cryptonight_masari", {POW(cryptonight_masari)}, {POW(cryptonight_gpu)}, nullptr},
@@ -122,7 +123,6 @@ xmrstak::coin_selection coins[] = {
 	{"cryptonight_v8_zelerius", {POW(cryptonight_v8_zelerius)}, {POW(cryptonight_gpu)}, nullptr},
 	{"cryptonight_v7_stellite", {POW(cryptonight_stellite)}, {POW(cryptonight_gpu)}, nullptr},
 	{"cryptonight_gpu", {POW(cryptonight_gpu)}, {POW(cryptonight_gpu)}, "pool.ryo-currency.com:3333"},
-	{"cryptonight_conceal", {POW(cryptonight_conceal)}, {POW(cryptonight_gpu)}, nullptr},
 	{"graft", {POW(cryptonight_v8_reversewaltz), 12, POW(cryptonight_monero_v8)}, {POW(cryptonight_gpu)}, nullptr},
 	{"haven", {POW(cryptonight_haven)}, {POW(cryptonight_gpu)}, nullptr},
 	{"lethean", {POW(cryptonight_r)}, {POW(cryptonight_r)}, nullptr},
@@ -131,7 +131,8 @@ xmrstak::coin_selection coins[] = {
 	{"ryo", {POW(cryptonight_gpu)}, {POW(cryptonight_gpu)}, "pool.ryo-currency.com:3333"},
 	{"torque", {POW(cryptonight_v8_half)}, {POW(cryptonight_gpu)}, nullptr},
 	{"plenteum", {POW(cryptonight_turtle)}, {POW(cryptonight_turtle)}, nullptr},
-	{"zelerius", {POW(cryptonight_v8_zelerius), 7, POW(cryptonight_monero_v8)}, {POW(cryptonight_gpu)}, nullptr}};
+	{"zelerius", {POW(cryptonight_v8_zelerius), 7, POW(cryptonight_monero_v8)}, {POW(cryptonight_gpu)}, nullptr}
+};
 
 constexpr size_t coin_algo_size = (sizeof(coins) / sizeof(coins[0]));
 

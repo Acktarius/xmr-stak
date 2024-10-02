@@ -23,10 +23,11 @@ enum xmrstak_algo_id
 	cryptonight_monero_v8 = 11,
 	cryptonight_superfast = 12,
 	cryptonight_gpu = 13,
-	cryptonight_conceal = 14,
-	cryptonight_r_wow = 15,
-	cryptonight_r = 16,
-	cryptonight_v8_reversewaltz = 17, //equal to cryptonight_monero_v8 but with 3/4 iterations and reversed shuffle operation
+	// Remove the following line
+	// cryptonight_conceal = 14,
+	cryptonight_r_wow = 14, // Adjust this value
+	cryptonight_r = 15, // Adjust this value
+	cryptonight_v8_reversewaltz = 16, // Adjust this value
 
 	cryptonight_turtle = start_derived_algo_id,
 	cryptonight_v8_half = (start_derived_algo_id + 1),
@@ -41,7 +42,7 @@ enum xmrstak_algo_id
  */
 inline std::string get_algo_name(xmrstak_algo_id algo_id)
 {
-	static std::array<std::string, 18> base_algo_names =
+	static std::array<std::string, 17> base_algo_names =
 		{{
 			"invalid_algo",
 			"cryptonight",
@@ -57,10 +58,11 @@ inline std::string get_algo_name(xmrstak_algo_id algo_id)
 			"cryptonight_v8",
 			"cryptonight_superfast",
 			"cryptonight_gpu",
-			"cryptonight_conceal",
+			// Remove the following line
+			// "cryptonight_conceal",
 			"cryptonight_r_wow",
 			"cryptonight_r",
-			"cryptonight_v8_reversewaltz" // used by graft
+			"cryptonight_v8_reversewaltz"
 		}};
 
 	static std::array<std::string, 4> derived_algo_names =
@@ -200,21 +202,22 @@ constexpr uint32_t CN_DOUBLE_ITER = 0x100000;
 
 inline xmrstak_algo POW(xmrstak_algo_id algo_id)
 {
-	static std::array<xmrstak_algo, 18> pow = {{{invalid_algo, invalid_algo},
+	static std::array<xmrstak_algo, 17> pow = {{{invalid_algo, invalid_algo}, // Reduce size by 1
 		{cryptonight, cryptonight, CN_ITER, CN_MEMORY},
 		{cryptonight_lite, cryptonight_lite, CN_ITER / 2, CN_MEMORY / 2},
 		{cryptonight_monero, cryptonight_monero, CN_ITER, CN_MEMORY},
 		{cryptonight_heavy, cryptonight_heavy, CN_ITER / 2, CN_MEMORY * 2},
 		{cryptonight_aeon, cryptonight_aeon, CN_ITER / 2, CN_MEMORY / 2},
-		{cryptonight_ipbc, cryptonight_ipbc, CN_ITER / 2, CN_MEMORY / 2},		  // equal to cryptonight_aeon with a small tweak in the miner code
-		{cryptonight_stellite, cryptonight_stellite, CN_ITER, CN_MEMORY},		  //equal to cryptonight_monero but with one tiny change
-		{cryptonight_masari, cryptonight_masari, CN_ITER / 2, CN_MEMORY},		  //equal to cryptonight_monero but with less iterations, used by masari
-		{cryptonight_haven, cryptonight_haven, CN_ITER / 2, CN_MEMORY * 2},		  // equal to cryptonight_heavy with a small tweak
-		{cryptonight_bittube2, cryptonight_bittube2, CN_ITER / 2, CN_MEMORY * 2}, // derived from cryptonight_heavy with own aes-round implementation and minor other tweaks
+		{cryptonight_ipbc, cryptonight_ipbc, CN_ITER / 2, CN_MEMORY / 2},
+		{cryptonight_stellite, cryptonight_stellite, CN_ITER, CN_MEMORY},
+		{cryptonight_masari, cryptonight_masari, CN_ITER / 2, CN_MEMORY},
+		{cryptonight_haven, cryptonight_haven, CN_ITER / 2, CN_MEMORY * 2},
+		{cryptonight_bittube2, cryptonight_bittube2, CN_ITER / 2, CN_MEMORY * 2},
 		{cryptonight_monero_v8, cryptonight_monero_v8, CN_ITER, CN_MEMORY},
 		{cryptonight_superfast, cryptonight_superfast, CN_ITER / 4, CN_MEMORY},
 		{cryptonight_gpu, cryptonight_gpu, CN_GPU_ITER, CN_MEMORY, CN_GPU_MASK},
-		{cryptonight_conceal, cryptonight_conceal, CN_ITER / 2, CN_MEMORY},
+		// Remove the following line
+		// {cryptonight_conceal, cryptonight_conceal, CN_ITER / 2, CN_MEMORY},
 		{cryptonight_r_wow, cryptonight_r_wow, CN_ITER, CN_MEMORY},
 		{cryptonight_r, cryptonight_r, CN_ITER, CN_MEMORY},
 		{cryptonight_v8_reversewaltz, cryptonight_v8_reversewaltz, CN_WALTZ_ITER, CN_MEMORY}}};

@@ -317,11 +317,7 @@ extern "C" int cryptonight_extra_cpu_init(nvid_ctx* ctx)
 		// create a double buffer for the state to exchange the mixed state to phase1
 		CUDA_CHECK(ctx->device_id, cudaMalloc(&ctx->d_ctx_state2, 50 * sizeof(uint32_t) * wsize));
 	}
-	else if(std::find(neededAlgorithms.begin(), neededAlgorithms.end(), cryptonight_conceal) != neededAlgorithms.end())
-	{
-		ctx_b_size += sizeof(uint32_t) * 4 * wsize;
-	}
-	else if((std::find(neededAlgorithms.begin(), neededAlgorithms.end(), cryptonight_monero_v8) != neededAlgorithms.end()) || (std::find(neededAlgorithms.begin(), neededAlgorithms.end(), cryptonight_v8_reversewaltz) != neededAlgorithms.end()))
+	else if(std::find(neededAlgorithms.begin(), neededAlgorithms.end(), cryptonight_monero_v8) != neededAlgorithms.end())
 	{
 		// bx0 (16byte), bx1 (16byte), division_result (8byte) and sqrt_result (8byte), padding (16byte)
 		ctx_b_size = 4 * 4 * sizeof(uint32_t) * wsize;
@@ -474,7 +470,7 @@ extern "C" void cryptonight_extra_cpu_final(nvid_ctx* ctx, uint32_t startNonce, 
 	CUDA_CHECK(ctx->device_id, cudaMemcpy(rescount, ctx->d_result_count, sizeof(uint32_t), cudaMemcpyDeviceToHost));
 	CUDA_CHECK_MSG(
 		ctx->device_id,
-		"\n**suggestion: Try to increase the attribute 'bfactor' in the NVIDIA config file.**",
+		"\n**suggestion: Try to increase the value of the attribute 'bfactor' in the NVIDIA config file.**",
 		cudaMemcpy(resnonce, ctx->d_result_nonce, 10 * sizeof(uint32_t), cudaMemcpyDeviceToHost));
 
 	/* There is only a 32bit limit for the counter on the device side

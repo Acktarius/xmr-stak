@@ -29,8 +29,9 @@ R"===(
 #define cryptonight_monero_v8 11
 #define cryptonight_superfast 12
 #define cryptonight_gpu 13
-#define cryptonight_conceal 14
-#define cryptonight_v8_reversewaltz 17
+#define cryptonight_r_wow 14
+#define cryptonight_r 15
+#define cryptonight_v8_reversewaltz 16
 
 
 static const __constant ulong keccakf_rndc[24] =
@@ -79,7 +80,7 @@ void keccakf1600(ulong *s)
 		bc[3] = s[3] ^ s[8] ^ s[13] ^ s[18] ^ s[23] ^ rotate(s[0] ^ s[5] ^ s[10] ^ s[15] ^ s[20], 1UL);
 		bc[4] = s[4] ^ s[9] ^ s[14] ^ s[19] ^ s[24] ^ rotate(s[1] ^ s[6] ^ s[11] ^ s[16] ^ s[21], 1UL);
 
-		tmp1 = s[1] ^ bc[0];
+		tmp1 = s[1];
 
 		s[0] ^= bc[4];
 		s[1] = rotate(s[6] ^ bc[0], 44UL);
@@ -596,21 +597,12 @@ __kernel void JOIN(cn1,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 )
 {
 	ulong a[2];
-#if(ALGO == cryptonight_conceal)
-	float4 conc_var = (float4)(0.0f);
-#endif
-
-#if(ALGO == cryptonight_monero_v8 || ALGO == cryptonight_v8_reversewaltz)
-	ulong b[4];
-	uint4 b_x[2];
-// NVIDIA
-#	ifdef __NV_CL_C_VERSION
-	__local uint16 scratchpad_line_buf[WORKSIZE];
- 	__local uint16* scratchpad_line = scratchpad_line_buf + get_local_id(0);
-#	endif
-#else
 	ulong b[2];
 	uint4 b_x[1];
+
+#if((ALGO == cryptonight_monero_v8 || ALGO == cryptonight_v8_reversewaltz) && defined(__NV_CL_C_VERSION))
+	__local uint16 scratchpad_line_buf[WORKSIZE];
+ 	__local uint16* scratchpad_line = scratchpad_line_buf + get_local_id(0);
 #endif
 	__local uint AES0[256], AES1[256];
 
@@ -702,21 +694,6 @@ __kernel void JOIN(cn1,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 #endif
 
 			((uint4 *)c)[0] = SCRATCHPAD_CHUNK(0);
-
-#if(ALGO == cryptonight_conceal)
-			float4 r  = convert_float4_rte(((int4 *)c)[0]);
-			float4 c_old = conc_var;
-			r = _mm_add_ps(r, conc_var);
-			r = _mm_mul_ps(r, _mm_mul_ps(r, r));
-			r = _mm_and_ps(r, 0x807FFFFF);
-			r = _mm_or_ps(r, 0x40000000);
-			conc_var = _mm_add_ps(conc_var, r);
-
-			c_old = _mm_and_ps(c_old, 0x807FFFFF);
-			c_old = _mm_or_ps(c_old, 0x40000000);
-			float4 nc = _mm_mul_ps(c_old, (float4)(536870880.0f));
-			((int4 *)c)[0] ^= convert_int4_rte(nc);
-#endif
 
 #if(ALGO == cryptonight_bittube2)
 			((uint4 *)c)[0] = AES_Round2_bittube2(AES0, AES1, ~((uint4 *)c)[0], ((uint4 *)a)[0]);
