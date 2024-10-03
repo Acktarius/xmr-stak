@@ -30,3 +30,9 @@ cmake-build-debug/
 
 # Thumbnails
 ._*
+
+# Visual Studio Code files
+.vscode/
+
+# Cursor    
+.cursorrules

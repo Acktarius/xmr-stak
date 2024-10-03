@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "amd_gpu/gpu.hpp"
@@ -17,6 +16,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+#define CL_TARGET_OPENCL_VERSION 300
 
 #if defined(__APPLE__)
 #include <OpenCL/cl.h>

@@ -1,11 +1,11 @@
 project(xmr-stak)
 
-cmake_minimum_required(VERSION 3.4.0)
+cmake_minimum_required(VERSION 3.15)
 
-# enforce C++11
+# enforce C++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_STANDARD 11)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE PATH "install prefix" FORCE)
@@ -307,6 +307,8 @@ if(OpenCL_ENABLE)
 else()
     add_definitions("-DCONF_NO_OPENCL")
 endif()
+
+add_definitions(-DCL_TARGET_OPENCL_VERSION=300)
 
 ###############################################################################
 # CPU backend

@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <string>
 #include <time.h>
+#include <utility>
 
 #ifndef CONF_NO_TLS
 #include <openssl/err.h>
@@ -243,7 +244,7 @@ void do_guided_pool_config()
 		prompt_once(prompted);
 
 		userSetPool = false;
-		std::cout << "- Pool address: e.g. " << jconf::GetDefaultPool(xmrstak::params::inst().currency.c_str()) << std::endl;
+		std::cout << "- Pool address: e.g. " << jconf::GetDefaultPool(currency.c_str()) << std::endl;
 		std::cin >> pool;
 	}
 
@@ -403,7 +404,10 @@ int main(int argc, char* argv[])
 #ifndef CONF_NO_TLS
 	SSL_library_init();
 	SSL_load_error_strings();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	ERR_load_BIO_strings();
+#pragma GCC diagnostic pop
 	ERR_load_crypto_strings();
 	SSL_load_error_strings();
 	OpenSSL_add_all_digests();

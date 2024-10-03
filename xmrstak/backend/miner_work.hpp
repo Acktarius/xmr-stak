@@ -2,6 +2,7 @@
 
 #include "xmrstak/backend/pool_data.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cstdint>
@@ -32,31 +33,30 @@ struct miner_work
 		ref_ptr((uint8_t*)&iBlockHeight) {}
 
 	miner_work(const char* sJobID, const uint8_t* bWork, uint32_t iWorkSize,
-		uint64_t iTarget, bool bNiceHash, size_t iPoolId, uint64_t iBlockHeiht) :
-		iWorkSize(iWorkSize),
+		uint64_t iTarget, bool bNiceHash, size_t iPoolId, uint64_t iBlockHeight) :
+		iWorkSize(std::min(iWorkSize, static_cast<uint32_t>(sizeof(bWorkBlob)))),
 		iTarget(iTarget),
 		bNiceHash(bNiceHash),
-		bStall(false),
 		iPoolId(iPoolId),
-		iBlockHeight(iBlockHeiht),
-		ref_ptr((uint8_t*)&iBlockHeight)
+		iBlockHeight(iBlockHeight),
+		bStall(false)
 	{
-		assert(iWorkSize <= sizeof(bWorkBlob));
-		memcpy(this->bWorkBlob, bWork, iWorkSize);
-		memcpy(this->sJobID, sJobID, sizeof(miner_work::sJobID));
+		memcpy(this->bWorkBlob, bWork, this->iWorkSize);
+		strncpy(this->sJobID, sJobID, sizeof(this->sJobID) - 1);
+		this->sJobID[sizeof(this->sJobID) - 1] = '\0';
 	}
 
 	miner_work(miner_work&& from) :
-		iWorkSize(from.iWorkSize),
+		iWorkSize(std::min(from.iWorkSize, static_cast<uint32_t>(sizeof(bWorkBlob)))),
 		iTarget(from.iTarget),
 		bStall(from.bStall),
 		iPoolId(from.iPoolId),
 		iBlockHeight(from.iBlockHeight),
 		ref_ptr((uint8_t*)&iBlockHeight)
 	{
-		assert(iWorkSize <= sizeof(bWorkBlob));
-		memcpy(bWorkBlob, from.bWorkBlob, iWorkSize);
-		memcpy(this->sJobID, sJobID, sizeof(miner_work::sJobID));
+		memcpy(bWorkBlob, from.bWorkBlob, this->iWorkSize);
+		strncpy(this->sJobID, from.sJobID, sizeof(this->sJobID) - 1);
+		this->sJobID[sizeof(this->sJobID) - 1] = '\0';
 	}
 
 	miner_work(miner_work const&) = delete;

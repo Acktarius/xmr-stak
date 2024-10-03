@@ -1,109 +1,133 @@
 R"===(
 
-inline __global int4* scratchpad_ptr(uint idx, uint n, __global int *lpad) {
-    return (__global int4*)((__global char*)lpad + (idx & MASK) + n * 16);
+inline global int4* scratchpad_ptr(uint idx, uint n, __global int *lpad) { return (__global int4*)((__global char*)lpad + (idx & MASK) + n * 16); }
+
+inline float4 fma_break(float4 x)
+{
+	// Break the dependency chain by setitng the exp to ?????01
+	x = _mm_and_ps(x, 0xFEFFFFFF);
+	return _mm_or_ps(x, 0x00800000);
 }
 
-#define fma_break(x) ((x & (float4)(0xFEFFFFFF)) | (float4)(0x00800000))
+inline void sub_round(float4 n0, float4 n1, float4 n2, float4 n3, float4 rnd_c, float4* n, float4* d, float4* c)
+{
+	n1 = _mm_add_ps(n1, *c);
+	float4 nn = _mm_mul_ps(n0, *c);
+	nn = _mm_mul_ps(n1, _mm_mul_ps(nn,nn));
+	nn = fma_break(nn);
+	*n = _mm_add_ps(*n, nn);
 
-#define sub_round(n0, n1, n2, n3, rnd_c, n, d, c) \
-    do { \
-        n1 += *c; \
-        float4 nn = n0 * *c; \
-        nn = n1 * (nn * nn); \
-        nn = fma_break(nn); \
-        *n += nn; \
-        \
-        n3 -= *c; \
-        float4 dd = n2 * *c; \
-        dd = n3 * (dd * dd); \
-        dd = fma_break(dd); \
-        *d += dd; \
-        \
-        *c += rnd_c + (float4)(0.734375f); \
-        float4 r = nn + dd; \
-        r = (r & (float4)(0x807FFFFF)) | (float4)(0x40000000); \
-        *c += r; \
-    } while(0)
+	n3 = _mm_sub_ps(n3, *c);
+	float4 dd = _mm_mul_ps(n2, *c);
+	dd = _mm_mul_ps(n3, _mm_mul_ps(dd,dd));
+	dd = fma_break(dd);
+	*d = _mm_add_ps(*d, dd);
 
-#define round_compute(n0, n1, n2, n3, rnd_c, c, r) \
-    do { \
-        float4 n = (float4)(0.0f); \
-        float4 d = (float4)(0.0f); \
-        \
-        for(int i = 0; i < 8; ++i) { \
-            sub_round(n0, n1, n2, n3, rnd_c, &n, &d, c); \
-            float4 tmp = n0; n0 = n1; n1 = n2; n2 = n3; n3 = tmp; \
-        } \
-        \
-        d = (d & (float4)(0xFF7FFFFF)) | (float4)(0x40000000); \
-        *r += n / d; \
-    } while(0)
+	//Constant feedback
+	*c = _mm_add_ps(*c, rnd_c);
+	*c = _mm_add_ps(*c, (float4)(0.734375f));
+	float4 r = _mm_add_ps(nn, dd);
+	r = _mm_and_ps(r, 0x807FFFFF);
+	r = _mm_or_ps(r, 0x40000000);
+	*c = _mm_add_ps(*c, r);
 
-#define single_compute(n0, n1, n2, n3, cnt, rnd_c, sum) \
-    ({ \
-        float4 c = (float4)(cnt); \
-        float4 r = (float4)(0.0f); \
-        \
-        for(int i = 0; i < 4; ++i) \
-            round_compute(n0, n1, n2, n3, rnd_c, &c, &r); \
-        \
-        r = (r & (float4)(0x807FFFFF)) | (float4)(0x40000000); \
-        *sum = r; \
-        convert_int4_rte(r * (float4)(536870880.0f)); \
-    })
+}
 
-#define single_compute_wrap(rot, v0, v1, v2, v3, cnt, rnd_c, sum, out) \
-    do { \
-        float4 n0 = convert_float4_rte(v0); \
-        float4 n1 = convert_float4_rte(v1); \
-        float4 n2 = convert_float4_rte(v2); \
-        float4 n3 = convert_float4_rte(v3); \
-        \
-        int4 r = single_compute(n0, n1, n2, n3, cnt, rnd_c, sum); \
-        *out = rot == 0 ? r : (int4)(r.yzwx); \
-    } while(0)
+// 9*8 + 2 = 74
+inline void round_compute(float4 n0, float4 n1, float4 n2, float4 n3, float4 rnd_c, float4* c, float4* r)
+{
+	float4 n = (float4)(0.0f);
+	float4 d = (float4)(0.0f);
+
+	sub_round(n0, n1, n2, n3, rnd_c, &n, &d, c);
+	sub_round(n1, n2, n3, n0, rnd_c, &n, &d, c);
+	sub_round(n2, n3, n0, n1, rnd_c, &n, &d, c);
+	sub_round(n3, n0, n1, n2, rnd_c, &n, &d, c);
+	sub_round(n3, n2, n1, n0, rnd_c, &n, &d, c);
+	sub_round(n2, n1, n0, n3, rnd_c, &n, &d, c);
+	sub_round(n1, n0, n3, n2, rnd_c, &n, &d, c);
+	sub_round(n0, n3, n2, n1, rnd_c, &n, &d, c);
+
+	// Make sure abs(d) > 2.0 - this prevents division by zero and accidental overflows by division by < 1.0
+	d = _mm_and_ps(d, 0xFF7FFFFF);
+	d = _mm_or_ps(d, 0x40000000);
+	*r =_mm_add_ps(*r, _mm_div_ps(n,d));
+}
+
+inline int4 single_compute(float4 n0, float4 n1, float4 n2, float4 n3, float cnt, float4 rnd_c, __local float4* sum)
+{
+	float4 c= (float4)(cnt);
+	// 35 maths calls follow (140 FLOPS)
+	float4 r = (float4)(0.0f);
+
+	for(int i = 0; i < 4; ++i)
+		round_compute(n0, n1, n2, n3, rnd_c, &c, &r);
+
+	// do a quick fmod by setting exp to 2
+	r = _mm_and_ps(r, 0x807FFFFF);
+	r = _mm_or_ps(r, 0x40000000);
+	*sum = r; // 34
+	float4 x = (float4)(536870880.0f);
+	r = _mm_mul_ps(r, x); // 35
+	return convert_int4_rte(r);
+}
+
+inline void single_compute_wrap(const uint rot, int4 v0, int4 v1, int4 v2, int4 v3, float cnt, float4 rnd_c, __local float4* sum, __local int4* out)
+{
+	float4 n0 = convert_float4_rte(v0);
+	float4 n1 = convert_float4_rte(v1);
+	float4 n2 = convert_float4_rte(v2);
+	float4 n3 = convert_float4_rte(v3);
+
+	int4 r = single_compute(n0, n1, n2, n3, cnt, rnd_c, sum);
+	*out = rot == 0 ? r : _mm_alignr_epi8(r, rot);
+}
 
 )==="
 	R"===(
 
-// Move lookup tables to constant memory
-__constant uint look[16][4] = {
-    {0, 1, 2, 3},
-    {0, 2, 3, 1},
-    {0, 3, 1, 2},
-    {0, 3, 2, 1},
-    {1, 0, 2, 3},
-    {1, 2, 3, 0},
-    {1, 3, 0, 2},
-    {1, 3, 2, 0},
-    {2, 1, 0, 3},
-    {2, 0, 3, 1},
-    {2, 3, 1, 0},
-    {2, 3, 0, 1},
-    {3, 1, 2, 0},
-    {3, 2, 0, 1},
-    {3, 0, 1, 2},
-    {3, 0, 2, 1}
+static const __constant uint look[16][4] = {
+	{0, 1, 2, 3},
+	{0, 2, 3, 1},
+	{0, 3, 1, 2},
+	{0, 3, 2, 1},
+
+	{1, 0, 2, 3},
+	{1, 2, 3, 0},
+	{1, 3, 0, 2},
+	{1, 3, 2, 0},
+
+	{2, 1, 0, 3},
+	{2, 0, 3, 1},
+	{2, 3, 1, 0},
+	{2, 3, 0, 1},
+
+	{3, 1, 2, 0},
+	{3, 2, 0, 1},
+	{3, 0, 1, 2},
+	{3, 0, 2, 1}
 };
 
-__constant float ccnt[16] = {
-    1.34375f,
-    1.28125f,
-    1.359375f,
-    1.3671875f,
-    1.4296875f,
-    1.3984375f,
-    1.3828125f,
-    1.3046875f,
-    1.4140625f,
-    1.2734375f,
-    1.2578125f,
-    1.2890625f,
-    1.3203125f,
-    1.3515625f,
-    1.3359375f,
-    1.4609375f
+static const __constant float ccnt[16] = {
+	1.34375f,
+	1.28125f,
+	1.359375f,
+	1.3671875f,
+
+	1.4296875f,
+	1.3984375f,
+	1.3828125f,
+	1.3046875f,
+
+	1.4140625f,
+	1.2734375f,
+	1.2578125f,
+	1.2890625f,
+
+	1.3203125f,
+	1.3515625f,
+	1.3359375f,
+	1.4609375f
 };
 
 struct SharedMemChunk
@@ -115,98 +139,84 @@ struct SharedMemChunk
 __attribute__((reqd_work_group_size(WORKSIZE * 16, 1, 1)))
 __kernel void JOIN(cn1_cn_gpu,ALGO)(__global int *lpad_in, __global int *spad, uint numThreads)
 {
-    const uint gIdx = getIdx();
+	const uint gIdx = getIdx();
 
-    #if(COMP_MODE==1)
-    if(gIdx/16 >= numThreads)
-        return;
-    #endif
+#if(COMP_MODE==1)
+	if(gIdx/16 >= numThreads)
+		return;
+#endif
 
-    uint chunk = get_local_id(0) / 16;
+	uint chunk = get_local_id(0) / 16;
 
-    #if(STRIDED_INDEX==0)
-    __global int4* lpad = (__global int4*)((__global char*)lpad_in + MEMORY * (gIdx/16));
-    #endif
+#if(STRIDED_INDEX==0)
+	__global int* lpad = (__global int*)((__global char*)lpad_in + MEMORY * (gIdx/16));
+#endif
 
-    __local struct SharedMemChunk {
-        int4 out[16];
-        float4 va[16];
-    } smem_in[WORKSIZE];
-    __local struct SharedMemChunk* smem = smem_in + chunk;
+	__local struct SharedMemChunk smem_in[WORKSIZE];
+	__local struct SharedMemChunk* smem = smem_in + chunk;
 
-    // New local memory cache for frequently accessed data
-    __local int4 lpad_cache[32];
+	uint tid = get_local_id(0) % 16;
 
-    uint tid = get_local_id(0) % 16;
+	uint idxHash = gIdx/16;
+	uint s = ((__global uint*)spad)[idxHash * 50] >> 8;
+	float4 vs = (float4)(0);
 
-    uint idxHash = gIdx/16;
-    uint s = ((__global uint*)spad)[idxHash * 50] >> 8;
-    float4 vs = (float4)(0);
+	// tid divided
+	const uint tidd = tid / 4;
+	// tid modulo
+	const uint tidm = tid % 4;
+	const uint block = tidd * 16 + tidm;
 
-    const uint tidd = tid / 4;
-    const uint tidm = tid % 4;
-    const uint block = tidd * 16 + tidm;
+	#pragma unroll CN_UNROLL
+	for(size_t i = 0; i < ITERATIONS; i++)
+	{
+		mem_fence(CLK_LOCAL_MEM_FENCE);
+		int tmp = ((__global int*)scratchpad_ptr(s, tidd, lpad))[tidm];
+		((__local int*)(smem->out))[tid] = tmp;
+		mem_fence(CLK_LOCAL_MEM_FENCE);
 
-    // Preload frequently accessed data into local memory
-    if (tid < 32) {
-        lpad_cache[tid] = lpad[tid];
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
+		{
+			single_compute_wrap(
+				tidm,
+				*(smem->out + look[tid][0]),
+				*(smem->out + look[tid][1]),
+				*(smem->out + look[tid][2]),
+				*(smem->out + look[tid][3]),
+				ccnt[tid], vs, smem->va + tid,
+				smem->out + tid
+			);
+		}
+		mem_fence(CLK_LOCAL_MEM_FENCE);
 
-    #pragma unroll CN_UNROLL
-    for(uint i = 0; i < ITERATIONS; i++)
-    {
-        barrier(CLK_LOCAL_MEM_FENCE);
-        
-        smem->out[tid] = scratchpad_ptr(s, tidd, (__global int*)lpad_cache)[tidm];
-        
-        barrier(CLK_LOCAL_MEM_FENCE);
+		int outXor = ((__local int*)smem->out)[block];
+		for(uint dd = block + 4; dd < (tidd + 1) * 16; dd += 4)
+			outXor ^= ((__local int*)smem->out)[dd];
 
-        single_compute_wrap(
-            tidm,
-            smem->out[look[tid][0]],
-            smem->out[look[tid][1]],
-            smem->out[look[tid][2]],
-            smem->out[look[tid][3]],
-            ccnt[tid], vs, &smem->va[tid],
-            &smem->out[tid]
-        );
+		((__global int*)scratchpad_ptr(s, tidd, lpad))[tidm] = outXor ^ tmp;
+		((__local int*)smem->out)[tid] = outXor;
 
-        barrier(CLK_LOCAL_MEM_FENCE);
+		float va_tmp1 = ((__local float*)smem->va)[block] + ((__local float*)smem->va)[block + 4];
+		float va_tmp2 = ((__local float*)smem->va)[block+ 8] + ((__local float*)smem->va)[block + 12];
+		((__local float*)smem->va)[tid] = va_tmp1 + va_tmp2;
 
-        // Combine outXor calculation and update of lpad_cache
-        int4 outXor = smem->out[block];
-        #pragma unroll
-        for(uint dd = block + 4; dd < (tidd + 1) * 16; dd += 4)
-            outXor ^= smem->out[dd];
-        lpad_cache[s % 32] = outXor ^ smem->out[tid];
-        smem->out[tid] = outXor;
+		mem_fence(CLK_LOCAL_MEM_FENCE);
 
-        // Combine va_tmp calculation and assignment
-        smem->va[tid] = (smem->va[block] + smem->va[block + 4]) + (smem->va[block + 8] + smem->va[block + 12]);
+		int out2 = ((__local int*)smem->out)[tid] ^ ((__local int*)smem->out)[tid + 4 ] ^ ((__local int*)smem->out)[tid + 8] ^ ((__local int*)smem->out)[tid + 12];
+		va_tmp1 = ((__local float*)smem->va)[block] + ((__local float*)smem->va)[block + 4];
+		va_tmp2 = ((__local float*)smem->va)[block + 8] + ((__local float*)smem->va)[block + 12];
+		va_tmp1 = va_tmp1 + va_tmp2;
+		va_tmp1 = fabs(va_tmp1);
 
-        barrier(CLK_LOCAL_MEM_FENCE);
+		float xx = va_tmp1 * 16777216.0f;
+		int xx_int = (int)xx;
+		((__local int*)smem->out)[tid] = out2 ^ xx_int;
+		((__local float*)smem->va)[tid] = va_tmp1 / 64.0f;
 
-        // Combine out2 and va_tmp2 calculations
-        int4 out2 = (smem->out[tid] ^ smem->out[tid + 4]) ^ (smem->out[tid + 8] ^ smem->out[tid + 12]);
-        float4 va_tmp2 = fabs((smem->va[block] + smem->va[block + 4]) + (smem->va[block + 8] + smem->va[block + 12]));
+		mem_fence(CLK_LOCAL_MEM_FENCE);
 
-        // Combine xx calculation and conversion
-        int4 xx_int = convert_int4_rte(va_tmp2 * (float4)(16777216.0f));
-        smem->out[tid] = out2 ^ xx_int;
-        smem->va[tid] = va_tmp2 * (float4)(0.015625f);  // Vectorized division by 64.0f
-
-        barrier(CLK_LOCAL_MEM_FENCE);
-
-        // Combine vs and s updates
-        vs = smem->va[0];
-        s = smem->out[0].x ^ smem->out[0].y ^ smem->out[0].z ^ smem->out[0].w;
-    }
-
-    // Write back to global memory
-    if (tid < 32) {
-        lpad[tid] = lpad_cache[tid];
-    }
+		vs = smem->va[0];
+		s = smem->out[0].x ^ smem->out[0].y ^ smem->out[0].z ^ smem->out[0].w;
+	}
 }
 
 )==="

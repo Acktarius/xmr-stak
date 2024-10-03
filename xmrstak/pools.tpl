@@ -21,6 +21,7 @@ POOLCONF],
  *
  *    bbscoin (automatic switch with block version 3 to cryptonight_v7)
  *    bittube (uses cryptonight_bittube2 algorithm)
+ *    conceal (uses cryptonight_gpu algorithm)
  *    graft
  *    haven (automatic switch with block version 3 to cryptonight_haven)
  *    lethean
@@ -42,7 +43,7 @@ POOLCONF],
  *    cryptonight_lite_v7_xor (algorithm used by ipbc)
  *    # 2MiB scratchpad memory
  *    cryptonight
- *    cryptonight_gpu (for Ryo's 14th of Feb fork)
+ *    cryptonight_gpu (for Ryo's 14th of Feb fork and Conceal)
  *    cryptonight_superfast
  *    cryptonight_v7
  *    cryptonight_v8
