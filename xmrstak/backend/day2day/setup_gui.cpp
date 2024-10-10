@@ -30,27 +30,13 @@ std::tuple<bool, std::string, std::string> readMiningConfig()
         return std::make_tuple(false, std::string(), std::string());
     }
 
-    wxString poolAddress, walletAddress;
-    for (wxString line = file.GetFirstLine(); !file.Eof(); line = file.GetNextLine())
-    {
-        if (line.StartsWith("\"pool_address\" : "))
-        {
-            poolAddress = line.AfterFirst(':').Trim(true).Trim(false);
-            poolAddress.Remove(0, 1).RemoveLast();
-        }
-        else if (line.StartsWith("\"wallet_address\" : "))
-        {
-            walletAddress = line.AfterFirst(':').Trim(true).Trim(false);
-            walletAddress.Remove(0, 1).RemoveLast();
-        }
-
-        if (!poolAddress.IsEmpty() && !walletAddress.IsEmpty())
-        {
-            break;
-        }
-    }
-
     file.Close();
+
+    wxString poolAddress, walletAddress;
+    poolAddress = "toto";
+    walletAddress = "ccx7";
+
+    
 
     if (poolAddress.IsEmpty() || walletAddress.IsEmpty())
     {
@@ -86,13 +72,19 @@ bool GUIApp::OnInit()
     
     if (fileReachable == false)
     {
-        wxMessageBox("The pools.txt file is missing or invalid in the /bin folder. "
-                     "Please create this file by running xmr-stak_initial setup before starting the miner this way.",
+        wxMessageBox("The pools.txt file is missing or invalid in the /bin folder.\n"
+                     "Please create this file by running xmr-stak for initial setup,\n"
+                     "before starting the miner this way.",
                      "Configuration Missing",
                      wxOK | wxICON_ERROR);
         return false;
     }
-
+     {
+        wxMessageBox("The pools.txt file is has been detect,"
+                     + pool + " " + wallet,
+                     "Configuration",
+                     wxOK | wxICON_INFORMATION);
+    }
     MiningConfigFrame* frame = new MiningConfigFrame(nullptr, wxID_ANY, "XMR-Stak Day2Day Mining", wxDefaultPosition, wxSize(400, 300));
     frame->SetPoolInfo(pool, wallet);  // Assuming you have this method in MiningConfigFrame
     frame->Show(true);
