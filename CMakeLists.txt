@@ -707,5 +707,3 @@ target_include_directories(xmr-stak_day2day PRIVATE ${wxWidgets_INCLUDE_DIRS})
 message(STATUS "wxWidgets_FOUND: ${wxWidgets_FOUND}")
 message(STATUS "wxWidgets_INCLUDE_DIRS: ${wxWidgets_INCLUDE_DIRS}")
 message(STATUS "wxWidgets_LIBRARIES: ${wxWidgets_LIBRARIES}")
-
-set(CMAKE_VERBOSE_MAKEFILE ON)
