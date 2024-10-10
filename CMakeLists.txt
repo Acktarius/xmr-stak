@@ -624,15 +624,26 @@ file(GLOB SRCFILES_CPP "xmrstak/cli/*.cpp")
 set_source_files_properties(${SRCFILES_CPP} PROPERTIES LANGUAGE CXX)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    add_executable(xmr-stak ${SRCFILES_CPP} xmrstak/cli/xmr-stak.manifest)
+    add_executable(xmr-stak_initial 
+        ${SRCFILES_CPP}
+        xmrstak/cli/xmr-stak.manifest
+    )
 else()
-    add_executable(xmr-stak ${SRCFILES_CPP})
+    add_executable(xmr-stak_initial 
+        ${SRCFILES_CPP}
+    )
 endif()
 
 set(EXECUTABLE_OUTPUT_PATH "bin" CACHE STRING "Path to place executables relative to ${CMAKE_INSTALL_PREFIX}")
 set(LIBRARY_OUTPUT_PATH "bin" CACHE STRING "Path to place libraries relative to ${CMAKE_INSTALL_PREFIX}")
 
-target_link_libraries(xmr-stak ${LIBS} xmr-stak-c xmr-stak-backend xmr-stak-asm)
+target_link_libraries(xmr-stak_initial 
+    PRIVATE
+    xmr-stak-backend
+    ${LIBS}
+    ${CMAKE_DL_LIBS}
+    ${HWLOC_LIBRARIES}
+)
 
 ################################################################################
 # Install
@@ -640,7 +651,7 @@ target_link_libraries(xmr-stak ${LIBS} xmr-stak-c xmr-stak-backend xmr-stak-asm)
 
 # do not install the binary if the project and install are equal
 if( NOT CMAKE_INSTALL_PREFIX STREQUAL PROJECT_BINARY_DIR )
-    install(TARGETS xmr-stak
+    install(TARGETS xmr-stak_initial
             RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/${EXECUTABLE_OUTPUT_PATH}")
     if(CUDA_FOUND)
         if(WIN32)
@@ -664,3 +675,37 @@ else()
     # this rule is used if the install prefix is the build directory
     install(CODE "MESSAGE(\"xmr-stak installed to folder 'bin'\")")
 endif()
+# Find wxWidgets
+find_package(wxWidgets 3.2.4 REQUIRED COMPONENTS core base)
+if(wxWidgets_FOUND)
+    include(${wxWidgets_USE_FILE})
+    find_package(Threads REQUIRED)
+    add_executable(xmr-stak_day2day 
+        xmrstak/setup_gui.cpp
+    )
+    target_link_options(xmr-stak_day2day PRIVATE
+    -L/usr/local/lib
+    )
+    target_link_libraries(xmr-stak_day2day 
+        wx_baseu-3.2
+        wx_gtk3u_core-3.2
+        pthread
+        #${wxWidgets_LIBRARIES}
+    )
+    # Add wxWidgets compile definitions and options
+    target_compile_options(xmr-stak_day2day PRIVATE ${wxWidgets_CXX_FLAGS})
+    # Print include directories for debugging
+get_target_property(INCLUDE_DIRS xmr-stak_day2day INCLUDE_DIRECTORIES)
+message("Include directories: ${INCLUDE_DIRS}")
+else()
+    message(WARNING "wxWidgets not found. xmr-stak_day2day will not be built.")
+endif()
+# Add wxWidgets include directories to your target
+target_include_directories(xmr-stak_day2day PRIVATE ${wxWidgets_INCLUDE_DIRS})
+
+
+message(STATUS "wxWidgets_FOUND: ${wxWidgets_FOUND}")
+message(STATUS "wxWidgets_INCLUDE_DIRS: ${wxWidgets_INCLUDE_DIRS}")
+message(STATUS "wxWidgets_LIBRARIES: ${wxWidgets_LIBRARIES}")
+
+set(CMAKE_VERBOSE_MAKEFILE ON)
