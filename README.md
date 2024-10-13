@@ -1,3 +1,7 @@
+## This fork to add Conceal as a coin and to remove cryptonight_conceal algo to avoid confusion
+
+---
+
 <a href="doc/README.md" _target="blank"><img src="doc/_img/gpu.png"></a>
 <a href="#select_coin" _target="blank"><img src="doc/_img/cpu.png"></a>
 <table>
