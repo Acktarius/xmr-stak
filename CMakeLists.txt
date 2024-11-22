@@ -676,7 +676,7 @@ else()
     install(CODE "MESSAGE(\"xmr-stak installed to folder 'bin'\")")
 endif()
 # Find wxWidgets
-find_package(wxWidgets 3.2.4 REQUIRED COMPONENTS core base)
+find_package(wxWidgets 3.0 REQUIRED COMPONENTS core base)
 if(!wxWidgets_FOUND)
     message(WARNING "wxWidgets not found. xmr-stak_day2day will not be built.")
 else()
@@ -694,7 +694,7 @@ else()
         wx_gtk3u_core-3.2
         pthread
         xmr-stak-backend
-        #${wxWidgets_LIBRARIES}
+        ${wxWidgets_LIBRARIES}
     )
     # Add wxWidgets compile definitions and options
     target_compile_options(xmr-stak_day2day PRIVATE ${wxWidgets_CXX_FLAGS})
