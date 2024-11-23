@@ -673,7 +673,7 @@ if( NOT CMAKE_INSTALL_PREFIX STREQUAL PROJECT_BINARY_DIR )
     endif()
 else()
     # this rule is used if the install prefix is the build directory
-    install(CODE "MESSAGE(\"xmr-stak installed to folder 'bin'\")")
+    install(CODE "MESSAGE(\"xmr-stak installed to folder 'build/bin'\nrun ./xmr-stak for initial setup\nrun ./xmr-stak_day2day (Concealers feature)\")")
 endif()
 # Find wxWidgets
 find_package(wxWidgets 3.0 REQUIRED COMPONENTS core base)
@@ -703,7 +703,10 @@ get_target_property(INCLUDE_DIRS xmr-stak_day2day INCLUDE_DIRECTORIES)
 file(GLOB MISC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/xmrstak/misc/*.cpp")
 target_sources(xmr-stak_day2day PRIVATE ${MISC_SOURCES})
 message("Include directories: ${INCLUDE_DIRS}")
-target_include_directories(xmr-stak_day2day PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_include_directories(xmr-stak_day2day PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${wxWidgets_INCLUDE_DIRS}
+)
     
 endif()
 # Add wxWidgets include directories to your target

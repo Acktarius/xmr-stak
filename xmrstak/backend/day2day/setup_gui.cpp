@@ -9,41 +9,25 @@
 #include <wx/stdpaths.h>
 #include <wx/textfile.h>
 #include <wx/string.h>
+#include <fstream>
+#include "../../jconf.hpp"
+#include "../../params.hpp"
+
 
 enum {
     ID_START_BUTTON = wxID_HIGHEST + 1
 };
-//readMiningConfig
-std::tuple<bool, std::string, std::string> readMiningConfig()
+
+std::tuple<bool, std::string, std::string, std::string> readMiningConfig()
 {
-    wxString poolsFilePath = wxFileName::GetCwd() + wxFileName::GetPathSeparator() + "pools.txt";
-    bool poolsFileExists = wxFileExists(poolsFilePath);
+    std::cout << "DEBUG: Starting readMiningConfig()" << std::endl;
+       
+    // Get pool address and wallet directly from jconf instance
+    const std::string& poolAddr = jconf::GetDefaultPool(xmrstak::params::inst().poolURL.c_str());
+    const std::string& walletAddr = jconf::GetDefaultPool(xmrstak::params::inst().poolUsername.c_str());
+    const std::string& currency = jconf::GetDefaultPool(xmrstak::params::inst().currency.c_str());
 
-    if (!poolsFileExists)
-    {
-        return std::make_tuple(false, std::string(), std::string());
-    }
-
-    wxTextFile file(poolsFilePath);
-    if (!file.Open())
-    {
-        return std::make_tuple(false, std::string(), std::string());
-    }
-
-    file.Close();
-
-    wxString poolAddress, walletAddress;
-    poolAddress = "toto";
-    walletAddress = "ccx7";
-
-    
-
-    if (poolAddress.IsEmpty() || walletAddress.IsEmpty())
-    {
-        return std::make_tuple(true, std::string(), std::string());  //TODO: change to false when pools.txt is fixed
-    }
-
-    return std::make_tuple(true, poolAddress.ToStdString(), walletAddress.ToStdString());
+    return std::make_tuple(!poolAddr.empty(), poolAddr, walletAddr, currency);
 }
 
 // Implement the member functions of MiningConfigFrame
@@ -64,24 +48,29 @@ void MiningConfigFrame::OnStart(wxCommandEvent& event)
 // Implement the member functions of MyApp
 bool GUIApp::OnInit()
 {
+    std::cout << "DEBUG: Starting OnInit()" << std::endl;
+    
     if (!wxApp::OnInit())
         return false;
 
+    std::cout << "DEBUG: About to call readMiningConfig()" << std::endl;
+    
     // Create an instance of ReadPoolConfig
-    auto [fileReachable, pool, wallet] = readMiningConfig();
+    auto [fileReachable, pool, wallet, currency] = readMiningConfig();
+    
+    std::cout << "DEBUG: readMiningConfig() returned fileReachable=" << fileReachable << std::endl;
     
     if (fileReachable == false)
     {
-        wxMessageBox("The pools.txt file is missing or invalid in the /bin folder.\n"
-                     "Please create this file by running xmr-stak for initial setup,\n"
-                     "before starting the miner this way.",
+        wxMessageBox("The pools.txt file is missing or not in the /bin folder.\n"
+                     "Please create this file by running xmr-stak for initial setup.",
                      "Configuration Missing",
                      wxOK | wxICON_ERROR);
         return false;
     }
      {
-        wxMessageBox("The pools.txt file is has been detect,"
-                     + pool + " " + wallet,
+        wxMessageBox("The pools.txt file has been detect,"
+                     + pool + " " + wallet + " " + currency,
                      "Configuration",
                      wxOK | wxICON_INFORMATION);
     }
