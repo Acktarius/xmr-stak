@@ -18,12 +18,12 @@ enum {
     ID_START_BUTTON = wxID_HIGHEST + 1
 };
 
-std::tuple<bool, std::string, std::string, std::string> readMiningConfig()
+PoolConfig readMiningConfig()
 {
     try {
         std::ifstream file("pools.txt", std::ifstream::binary);
         if (!file.is_open()) {
-            return std::make_tuple(false, "", "", "");
+            return PoolConfig();
         }
 
         // Read file content into string
@@ -61,32 +61,27 @@ std::tuple<bool, std::string, std::string, std::string> readMiningConfig()
         std::istringstream jsonStream(content);
 
         if (!Json::parseFromStream(builder, jsonStream, &root, &errs)) {
-            return std::make_tuple(false, "", "", "");
+            return PoolConfig();
         }
 
         if (!root.isMember("pool_list") || !root["pool_list"].isArray()) {
-            return std::make_tuple(false, "", "", "");
+            return PoolConfig();
         }
 
         const Json::Value& poolList = root["pool_list"];
         if (poolList.empty()) {
-            return std::make_tuple(false, "", "", "");
+            return PoolConfig();
         }
 
-        std::string poolAddress = poolList[0]["pool_address"].asString();
-        std::string walletAddress = poolList[0]["wallet_address"].asString();
-        std::string currency = root["currency"].asString();
-
-        return std::make_tuple(true, poolAddress, walletAddress, currency);
-    }
-    catch (const Json::Exception& e) {
-        return std::make_tuple(false, "", "", "");
-    }
-    catch (const std::exception& e) {
-        return std::make_tuple(false, "", "", "");
+        return PoolConfig(
+            true,
+            poolList[0]["pool_address"].asString(),
+            poolList[0]["wallet_address"].asString(),
+            root["currency"].asString()
+        );
     }
     catch (...) {
-        return std::make_tuple(false, "", "", "");
+        return PoolConfig();
     }
 }
 
@@ -95,8 +90,23 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
                                      const wxPoint& pos, const wxSize& size)
     : wxFrame(parent, id, title, pos, size)
 {
-    // Constructor implementation
-    // ...
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+    
+    // Store pointers to text controls
+    m_poolText = new wxStaticText(this, wxID_ANY, "Mining Pool: ");
+    m_walletText = new wxStaticText(this, wxID_ANY, "Wallet: ");
+    
+    mainSizer->Add(m_poolText, 0, wxALL, 10);
+    mainSizer->Add(m_walletText, 0, wxALL, 10);
+    
+    SetSizer(mainSizer);
+}
+
+void MiningConfigFrame::UpdateDisplay()
+{
+    m_poolText->SetLabel("Mining Pool: " + wxString(m_pool));
+    m_walletText->SetLabel("Wallet: " + wxString(m_wallet));
+    Layout(); // Ensure the frame updates properly
 }
 
 void MiningConfigFrame::OnStart(wxCommandEvent& event)
@@ -111,10 +121,9 @@ bool GUIApp::OnInit()
     if (!wxApp::OnInit())
         return false;
 
-    // Create an instance of ReadPoolConfig
-    auto [fileReachable, pool, wallet, currency] = readMiningConfig();
+    PoolConfig config = readMiningConfig();
     
-    if (fileReachable == false)
+    if (!config.isValid())
     {
         wxMessageBox("The pools.txt file is missing or not in the /bin folder.\n"
                      "Please create this file by running xmr-stak for initial setup.",
@@ -122,23 +131,25 @@ bool GUIApp::OnInit()
                      wxOK | wxICON_ERROR);
         return false;
     }
-      if (currency != "conceal")
-        {
+
+    if (config.getCurrency() != "conceal")
+    {
         wxMessageBox("this user interface is developped for Conceal users.\n",
                      "Please consider mining CCX",
                      wxOK | wxICON_ERROR);
         return false;
-        }
-        {
-            wxMessageBox("The pools.txt file has been detected\n"
-                        "Pool: " + wxString(pool) + "\n"
-                        "Wallet: " + wxString(wallet) + "\n"
-                        "Mining: " + wxString(currency),
-                        "Configuration found",
-                        wxOK | wxICON_INFORMATION);
-        }
-    MiningConfigFrame* frame = new MiningConfigFrame(nullptr, wxID_ANY, "XMR-Stak Day2Day Mining", wxDefaultPosition, wxSize(600, 400));
-    frame->SetPoolInfo(pool, wallet);  // Assuming you have this method in MiningConfigFrame
+    }
+/*
+    wxMessageBox("The pools.txt file has been detected\n"
+                "Pool: " + wxString(config.getPoolAddress()) + "\n"
+                "Wallet: " + wxString(config.getWalletAddress()) + "\n"
+                "Mining: " + wxString(config.getCurrency()),
+                "Configuration found",
+                wxOK | wxICON_INFORMATION);
+*/
+    MiningConfigFrame* frame = new MiningConfigFrame(nullptr, wxID_ANY, 
+        "XMR-Stak-CCX", wxDefaultPosition, wxSize(800, 400));
+    frame->SetPoolInfo(config.getPoolAddress(), config.getWalletAddress());
     frame->Show(true);
     return true;
 }
