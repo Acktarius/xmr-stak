@@ -20,7 +20,8 @@ enum {
     ID_START_BUTTON = wxID_HIGHEST + 1,
     ID_MODIFY_BUTTON,
     ID_BIND_BUTTON,
-    ID_PROCESS_OUTPUT = wxID_HIGHEST + 100
+    ID_PROCESS_OUTPUT = wxID_HIGHEST + 100,
+    ID_STOP_BUTTON
 };
 
 PoolConfig readMiningConfig()
@@ -105,28 +106,38 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     mainSizer->Add(m_walletText, 0, wxALL, 10);
     
     // Buttons
-    wxButton* modifyButton = new wxButton(this, ID_MODIFY_BUTTON, "Modify Settings");
-    wxButton* startButton = new wxButton(this, ID_START_BUTTON, "Start Mining");
-        
+    m_modifyButton = new wxButton(this, ID_MODIFY_BUTTON, "Modify Settings");
+    m_startButton = new wxButton(this, ID_START_BUTTON, "Start Mining");
+    m_stopButton = new wxButton(this, ID_STOP_BUTTON, "Stop Mining");
+    m_stopButton->Hide(); // Initially hidden
+    
     // Create a horizontal sizer for buttons
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     
-    // Add buttons to horizontal sizer with proportion 1 to make them equal width
-    buttonSizer->Add(modifyButton, 1, wxEXPAND | wxRIGHT, 5);  // 5 pixels right margin
-    buttonSizer->Add(startButton, 1, wxEXPAND | wxLEFT, 5);    // 5 pixels left margin
+    // Add buttons to horizontal sizer
+    buttonSizer->Add(m_modifyButton, 1, wxEXPAND | wxRIGHT, 5);
+    buttonSizer->Add(m_startButton, 1, wxEXPAND | wxLEFT, 5);
     
-    // Add the horizontal button sizer to the main vertical sizer
-    mainSizer->Add(buttonSizer, 0, wxALL | wxEXPAND, 10);
-    
-    // Add console output
+    // Add the console output
     m_consoleOutput = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
                                    wxDefaultPosition, wxDefaultSize,
                                    wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH);
     mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
     
+    // Add stop button below console
+    mainSizer->Add(m_stopButton, 0, wxEXPAND | wxALL, 10);
+    
+    // Add the horizontal button sizer to the main vertical sizer
+    mainSizer->Add(buttonSizer, 0, wxALL | wxEXPAND, 10);
+    
     // Bind events
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnModify, this, ID_MODIFY_BUTTON);
-    Bind(wxEVT_BUTTON, &MiningConfigFrame::OnStart, this, ID_START_BUTTON);
+    Bind(wxEVT_BUTTON, 
+        wxCommandEventHandler(MiningConfigFrame::OnStart), 
+        this, ID_START_BUTTON);
+    Bind(wxEVT_BUTTON, 
+        wxCommandEventHandler(MiningConfigFrame::OnStop), 
+        this, ID_STOP_BUTTON);
     
     
     SetSizer(mainSizer);
@@ -168,7 +179,6 @@ void MiningConfigFrame::OnStart(wxCommandEvent& event)
         delete m_process;
     }
     
-    // Create process with input/output redirection
     m_process = new wxProcess(this);
     m_process->Redirect();
     
@@ -177,10 +187,17 @@ void MiningConfigFrame::OnStart(wxCommandEvent& event)
     long pid = wxExecute(cmd, wxEXEC_ASYNC | wxEXEC_NOHIDE, m_process);
     
     if (pid > 0) {
-        // Create and connect a timer to periodically check for output
+        // Disable modify and start buttons
+        m_modifyButton->Disable();
+        m_startButton->Disable();
+        // Show and enable stop button
+        m_stopButton->Show();
+        Layout(); // Refresh layout to show stop button
+        
+        // Create and connect timer
         wxTimer* timer = new wxTimer(this);
         Bind(wxEVT_TIMER, &MiningConfigFrame::OnProcessTimer, this);
-        timer->Start(100); // Check every 100ms
+        timer->Start(100);
     } else {
         m_consoleOutput->AppendText("Failed to start mining process\n");
     }
@@ -238,6 +255,21 @@ void MiningConfigFrame::OnProcessTerminate(wxProcessEvent& event)
         
         delete m_process;
         m_process = nullptr;
+        
+        // Re-enable buttons and hide stop button
+        m_modifyButton->Enable();
+        m_startButton->Enable();
+        m_stopButton->Hide();
+        Layout(); // Refresh layout
+    }
+}
+
+void MiningConfigFrame::OnStop(wxCommandEvent& event)
+{
+    if (m_process) {
+        // Kill the process
+        wxKill(m_process->GetPid(), wxSIGTERM);
+        m_consoleOutput->AppendText("Stopping mining process...\n");
     }
 }
 

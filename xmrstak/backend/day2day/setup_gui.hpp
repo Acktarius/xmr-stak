@@ -25,6 +25,7 @@ private:
     void OnBind(wxCommandEvent& event);
     void OnProcessTerminate(wxProcessEvent& event);
     void OnProcessTimer(wxTimerEvent& event);
+    void OnStop(wxCommandEvent& event);
     std::string m_pool;
     std::string m_wallet;
     wxStaticText* m_poolText;
@@ -32,6 +33,9 @@ private:
     wxTextCtrl* m_consoleOutput;
     wxProcess* m_process;
     void OnProcessOutput(wxCommandEvent& event);
+    wxButton* m_modifyButton;
+    wxButton* m_startButton;
+    wxButton* m_stopButton;
 };
 
 class PoolConfig
