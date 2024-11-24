@@ -14,6 +14,7 @@
 #include <sstream>
 #include <wx/txtstrm.h>
 #include <wx/process.h>
+#include "ccx_art.hpp"
 
 
 enum {
@@ -104,10 +105,10 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     
     mainSizer->Add(m_poolText, 0, wxALL, 10);
     mainSizer->Add(m_walletText, 0, wxALL, 10);
-    
     // Buttons
     m_modifyButton = new wxButton(this, ID_MODIFY_BUTTON, "Modify Settings");
     m_startButton = new wxButton(this, ID_START_BUTTON, "Start Mining");
+    // Stop Button
     m_stopButton = new wxButton(this, ID_STOP_BUTTON, "Stop Mining");
     m_stopButton->Hide(); // Initially hidden
     
@@ -244,6 +245,11 @@ void MiningConfigFrame::OnBind(wxCommandEvent& event)
 
 void MiningConfigFrame::OnProcessTerminate(wxProcessEvent& event)
 {
+    // Kill process if still active
+    if (m_process && wxProcess::Exists(m_process->GetPid())) {
+        wxKill(m_process->GetPid(), wxSIGTERM);
+    }
+
     if (m_process) {
         wxInputStream* processOutput = m_process->GetInputStream();
         wxTextInputStream tis(*processOutput);
@@ -260,16 +266,23 @@ void MiningConfigFrame::OnProcessTerminate(wxProcessEvent& event)
         m_modifyButton->Enable();
         m_startButton->Enable();
         m_stopButton->Hide();
-        Layout(); // Refresh layout
+        Layout();
     }
 }
 
 void MiningConfigFrame::OnStop(wxCommandEvent& event)
 {
     if (m_process) {
-        // Kill the process
+        std::string logo = ccx_art::getStopLogo();
+
+        m_consoleOutput->AppendText(wxString::FromUTF8(logo.c_str()));   // Convert std::string to const char*
+        
+        // Force immediate update of the console
+        m_consoleOutput->Update();
+        m_consoleOutput->Refresh();
+        
+        wxMilliSleep(1000);
         wxKill(m_process->GetPid(), wxSIGTERM);
-        m_consoleOutput->AppendText("Stopping mining process...\n");
     }
 }
 

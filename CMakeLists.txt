@@ -688,7 +688,7 @@ else()
     find_package(Threads REQUIRED)
     add_executable(xmr-stak_day2day 
         xmrstak/backend/day2day/setup_gui.cpp
-        xmrstak/misc/environment.cpp
+        xmrstak/backend/day2day/ccx_art.cpp 
     )
     target_link_options(xmr-stak_day2day PRIVATE
     -L/usr/local/lib
