@@ -12,10 +12,15 @@
 #include <fstream>
 #include <jsoncpp/json/json.h>
 #include <sstream>
+#include <wx/txtstrm.h>
+#include <wx/process.h>
 
 
 enum {
-    ID_START_BUTTON = wxID_HIGHEST + 1
+    ID_START_BUTTON = wxID_HIGHEST + 1,
+    ID_MODIFY_BUTTON,
+    ID_BIND_BUTTON,
+    ID_PROCESS_OUTPUT = wxID_HIGHEST + 100
 };
 
 PoolConfig readMiningConfig()
@@ -92,14 +97,45 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
 {
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
     
-    // Store pointers to text controls
+    // Text displays
     m_poolText = new wxStaticText(this, wxID_ANY, "Mining Pool: ");
     m_walletText = new wxStaticText(this, wxID_ANY, "Wallet: ");
     
     mainSizer->Add(m_poolText, 0, wxALL, 10);
     mainSizer->Add(m_walletText, 0, wxALL, 10);
     
+    // Buttons
+    wxButton* modifyButton = new wxButton(this, ID_MODIFY_BUTTON, "Modify Settings");
+    wxButton* startButton = new wxButton(this, ID_START_BUTTON, "Start Mining");
+        
+    // Create a horizontal sizer for buttons
+    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+    
+    // Add buttons to horizontal sizer with proportion 1 to make them equal width
+    buttonSizer->Add(modifyButton, 1, wxEXPAND | wxRIGHT, 5);  // 5 pixels right margin
+    buttonSizer->Add(startButton, 1, wxEXPAND | wxLEFT, 5);    // 5 pixels left margin
+    
+    // Add the horizontal button sizer to the main vertical sizer
+    mainSizer->Add(buttonSizer, 0, wxALL | wxEXPAND, 10);
+    
+    // Add console output
+    m_consoleOutput = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
+                                   wxDefaultPosition, wxDefaultSize,
+                                   wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH);
+    mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
+    
+    // Bind events
+    Bind(wxEVT_BUTTON, &MiningConfigFrame::OnModify, this, ID_MODIFY_BUTTON);
+    Bind(wxEVT_BUTTON, &MiningConfigFrame::OnStart, this, ID_START_BUTTON);
+    
+    
     SetSizer(mainSizer);
+    
+    // Initialize process pointer
+    m_process = nullptr;
+    
+    // Bind process output event
+    Bind(wxEVT_END_PROCESS, &MiningConfigFrame::OnProcessTerminate, this, wxID_ANY);
 }
 
 void MiningConfigFrame::UpdateDisplay()
@@ -109,9 +145,100 @@ void MiningConfigFrame::UpdateDisplay()
     Layout(); // Ensure the frame updates properly
 }
 
+void MiningConfigFrame::OnModify(wxCommandEvent& event)
+{
+    wxTextEntryDialog poolDialog(this, "Enter new pool address:", "Modify Pool", m_pool);
+    if (poolDialog.ShowModal() == wxID_OK) {
+        m_pool = poolDialog.GetValue().ToStdString();
+    }
+    
+    wxTextEntryDialog walletDialog(this, "Enter new wallet address:", "Modify Wallet", m_wallet);
+    if (walletDialog.ShowModal() == wxID_OK) {
+        m_wallet = walletDialog.GetValue().ToStdString();
+    }
+    
+    UpdateDisplay();
+}
+
 void MiningConfigFrame::OnStart(wxCommandEvent& event)
 {
-    // Your OnStart implementation here
+    m_consoleOutput->Clear();
+    
+    if (m_process) {
+        delete m_process;
+    }
+    
+    // Create process with input/output redirection
+    m_process = new wxProcess(this);
+    m_process->Redirect();
+    
+    wxString cmd = wxString::Format("./xmr-stak");
+    
+    long pid = wxExecute(cmd, wxEXEC_ASYNC | wxEXEC_NOHIDE, m_process);
+    
+    if (pid > 0) {
+        // Create and connect a timer to periodically check for output
+        wxTimer* timer = new wxTimer(this);
+        Bind(wxEVT_TIMER, &MiningConfigFrame::OnProcessTimer, this);
+        timer->Start(100); // Check every 100ms
+    } else {
+        m_consoleOutput->AppendText("Failed to start mining process\n");
+    }
+}
+
+void MiningConfigFrame::OnProcessTimer(wxTimerEvent& event)
+{
+    if (m_process) {
+        wxInputStream* processOutput = m_process->GetInputStream();
+        if (processOutput && processOutput->CanRead()) {
+            wxTextInputStream tis(*processOutput);
+            wxString line;
+            
+            // Read all available output
+            while (processOutput->CanRead()) {
+                line = tis.ReadLine();
+                if (!line.empty()) {
+                    m_consoleOutput->AppendText(line + "\n");
+                }
+            }
+        }
+        
+        // Also check for error output
+        wxInputStream* processError = m_process->GetErrorStream();
+        if (processError && processError->CanRead()) {
+            wxTextInputStream tis(*processError);
+            wxString line;
+            
+            while (processError->CanRead()) {
+                line = tis.ReadLine();
+                if (!line.empty()) {
+                    m_consoleOutput->AppendText("ERROR: " + line + "\n");
+                }
+            }
+        }
+    }
+}
+
+void MiningConfigFrame::OnBind(wxCommandEvent& event)
+{
+    wxExecute("./xmr-stak --bind", wxEXEC_SYNC);
+    wxMessageBox("GPU Binding Complete", "Bind GPU", wxOK | wxICON_INFORMATION);
+}
+
+void MiningConfigFrame::OnProcessTerminate(wxProcessEvent& event)
+{
+    if (m_process) {
+        wxInputStream* processOutput = m_process->GetInputStream();
+        wxTextInputStream tis(*processOutput);
+        
+        while (processOutput->CanRead()) {
+            wxString line = tis.ReadLine();
+            m_consoleOutput->AppendText(line + "\n");
+        }
+        
+        delete m_process;
+        m_process = nullptr;
+    }
 }
 
 
@@ -148,7 +275,7 @@ bool GUIApp::OnInit()
                 wxOK | wxICON_INFORMATION);
 */
     MiningConfigFrame* frame = new MiningConfigFrame(nullptr, wxID_ANY, 
-        "XMR-Stak-CCX", wxDefaultPosition, wxSize(800, 400));
+        "XMR-Stak-CCX", wxDefaultPosition, wxSize(1000, 800));
     frame->SetPoolInfo(config.getPoolAddress(), config.getWalletAddress());
     frame->Show(true);
     return true;

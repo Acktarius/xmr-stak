@@ -3,6 +3,7 @@
 #include <wx/wx.h>
 #include <tuple>
 #include <string>
+#include <wx/process.h>
 
 class MiningConfigFrame : public wxFrame
 {
@@ -19,11 +20,18 @@ public:
 
 private:
     void OnStart(wxCommandEvent& event);
+    void OnModify(wxCommandEvent& event);
     void UpdateDisplay();
+    void OnBind(wxCommandEvent& event);
+    void OnProcessTerminate(wxProcessEvent& event);
+    void OnProcessTimer(wxTimerEvent& event);
     std::string m_pool;
     std::string m_wallet;
     wxStaticText* m_poolText;
     wxStaticText* m_walletText;
+    wxTextCtrl* m_consoleOutput;
+    wxProcess* m_process;
+    void OnProcessOutput(wxCommandEvent& event);
 };
 
 class PoolConfig
