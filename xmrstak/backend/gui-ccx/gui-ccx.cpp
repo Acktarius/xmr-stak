@@ -1,4 +1,4 @@
-#include "setup_gui.hpp"
+#include "gui-ccx.hpp"
 #include <wx/sizer.h>
 #include <wx/button.h>
 #include <wx/textctrl.h>
@@ -123,6 +123,9 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     m_consoleOutput = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
                                    wxDefaultPosition, wxDefaultSize,
                                    wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH);
+    // Set a monospace font
+    wxFont monoFont(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+    m_consoleOutput->SetFont(monoFont);
     mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
     
     // Add stop button below console
@@ -276,6 +279,7 @@ void MiningConfigFrame::OnStop(wxCommandEvent& event)
         std::string logo = ccx_art::getStopLogo();
 
         m_consoleOutput->AppendText(wxString::FromUTF8(logo.c_str()));   // Convert std::string to const char*
+        m_consoleOutput->SetInsertionPoint(m_consoleOutput->GetLastPosition());
         
         // Force immediate update of the console
         m_consoleOutput->Update();

@@ -673,7 +673,7 @@ if( NOT CMAKE_INSTALL_PREFIX STREQUAL PROJECT_BINARY_DIR )
     endif()
 else()
     # this rule is used if the install prefix is the build directory
-    install(CODE "MESSAGE(\"xmr-stak installed to folder 'build/bin'\nrun ./xmr-stak for initial setup\nrun ./xmr-stak_day2day (Concealers feature)\")")
+    install(CODE "MESSAGE(\"xmr-stak installed to folder 'build/bin'\nrun_$./xmr-stak for initial setup\nrun_$./xmr-stak-gui-ccx (feature for Concealers)\")")
 endif()
 #JsonCPP
 find_package(PkgConfig REQUIRED)
@@ -682,18 +682,18 @@ pkg_check_modules(JSONCPP jsoncpp)
 # Find wxWidgets
 find_package(wxWidgets 3.0 REQUIRED COMPONENTS core base)
 if(!wxWidgets_FOUND)
-    message(WARNING "wxWidgets not found. xmr-stak_day2day will not be built.")
+    message(WARNING "wxWidgets not found. xmr-stak-gui-ccx will not be built.")
 else()
     include(${wxWidgets_USE_FILE})
     find_package(Threads REQUIRED)
-    add_executable(xmr-stak_day2day 
-        xmrstak/backend/day2day/setup_gui.cpp
-        xmrstak/backend/day2day/ccx_art.cpp 
+    add_executable(xmr-stak-gui-ccx 
+        xmrstak/backend/gui-ccx/gui-ccx.cpp
+        xmrstak/backend/gui-ccx/ccx_art.cpp 
     )
-    target_link_options(xmr-stak_day2day PRIVATE
+    target_link_options(xmr-stak-gui-ccx PRIVATE
     -L/usr/local/lib
     )
-    target_link_libraries(xmr-stak_day2day 
+    target_link_libraries(xmr-stak-gui-ccx 
         wx_baseu-3.2
         wx_gtk3u_core-3.2
         pthread
@@ -702,13 +702,13 @@ else()
         ${wxWidgets_LIBRARIES}
     )
     # Add wxWidgets compile definitions and options
-    target_compile_options(xmr-stak_day2day PRIVATE ${wxWidgets_CXX_FLAGS})
+    target_compile_options(xmr-stak-gui-ccx PRIVATE ${wxWidgets_CXX_FLAGS})
     # Print include directories for debugging
-get_target_property(INCLUDE_DIRS xmr-stak_day2day INCLUDE_DIRECTORIES)
+get_target_property(INCLUDE_DIRS xmr-stak-gui-ccx INCLUDE_DIRECTORIES)
 file(GLOB MISC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/xmrstak/misc/*.cpp")
-target_sources(xmr-stak_day2day PRIVATE ${MISC_SOURCES})
+target_sources(xmr-stak-gui-ccx PRIVATE ${MISC_SOURCES})
 message("Include directories: ${INCLUDE_DIRS}")
-target_include_directories(xmr-stak_day2day PRIVATE 
+target_include_directories(xmr-stak-gui-ccx PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${wxWidgets_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
