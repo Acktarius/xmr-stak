@@ -9,88 +9,22 @@
 #include <wx/stdpaths.h>
 #include <wx/textfile.h>
 #include <wx/string.h>
-#include <fstream>
-#include <jsoncpp/json/json.h>
-#include <sstream>
 #include <wx/txtstrm.h>
 #include <wx/process.h>
 #include "ccx_art.hpp"
+#include "pool_reader.hpp"
 
+using xmrstak::config::PoolConfig;
 
 enum {
     ID_START_BUTTON = wxID_HIGHEST + 1,
     ID_MODIFY_BUTTON,
-    ID_BIND_BUTTON,
     ID_PROCESS_OUTPUT = wxID_HIGHEST + 100,
-    ID_STOP_BUTTON
+    ID_STOP_BUTTON,
+    ID_HASH_BUTTON,
+    ID_RESULT_BUTTON,
+    ID_CONNECT_BUTTON
 };
-
-PoolConfig readMiningConfig()
-{
-    try {
-        std::ifstream file("pools.txt", std::ifstream::binary);
-        if (!file.is_open()) {
-            return PoolConfig();
-        }
-
-        // Read file content into string
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        std::string content = buffer.str();
-
-        // Remove C-style comments
-        size_t start, end;
-        while ((start = content.find("/*")) != std::string::npos) {
-            if ((end = content.find("*/", start)) != std::string::npos) {
-                content.erase(start, end - start + 2);
-            }
-        }
-
-        // Remove single-line comments
-        while ((start = content.find("//")) != std::string::npos) {
-            if ((end = content.find('\n', start)) != std::string::npos) {
-                content.erase(start, end - start);
-            } else {
-                content.erase(start);
-            }
-        }
-
-        // Add enclosing braces if not present
-        if (content.find_first_not_of(" \t\n\r") != '{') {
-            content = "{" + content + "}";
-        }
-
-        // Parse JSON
-        Json::Value root;
-        Json::CharReaderBuilder builder;
-        builder["collectComments"] = false;
-        std::string errs;
-        std::istringstream jsonStream(content);
-
-        if (!Json::parseFromStream(builder, jsonStream, &root, &errs)) {
-            return PoolConfig();
-        }
-
-        if (!root.isMember("pool_list") || !root["pool_list"].isArray()) {
-            return PoolConfig();
-        }
-
-        const Json::Value& poolList = root["pool_list"];
-        if (poolList.empty()) {
-            return PoolConfig();
-        }
-
-        return PoolConfig(
-            true,
-            poolList[0]["pool_address"].asString(),
-            poolList[0]["wallet_address"].asString(),
-            root["currency"].asString()
-        );
-    }
-    catch (...) {
-        return PoolConfig();
-    }
-}
 
 // Implement the member functions of MiningConfigFrame
 MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxString& title, 
@@ -111,14 +45,19 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     // Stop Button
     m_stopButton = new wxButton(this, ID_STOP_BUTTON, "Stop Mining");
     m_stopButton->Hide(); // Initially hidden
-    
+    m_hashButton = new wxButton(this, ID_HASH_BUTTON, "Hash");
+    m_hashButton->Hide();
+    m_resultButton = new wxButton(this, ID_RESULT_BUTTON, "Results");
+    m_resultButton->Hide();
+    m_connectButton = new wxButton(this, ID_CONNECT_BUTTON, "Connection");
+    m_connectButton->Hide();
     // Create a horizontal sizer for buttons
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     
     // Add buttons to horizontal sizer
     buttonSizer->Add(m_modifyButton, 1, wxEXPAND | wxRIGHT, 5);
     buttonSizer->Add(m_startButton, 1, wxEXPAND | wxLEFT, 5);
-    
+    mainSizer->Add(buttonSizer, 0, wxALL | wxEXPAND, 10);
     // Add the console output
     m_consoleOutput = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
                                    wxDefaultPosition, wxDefaultSize,
@@ -128,11 +67,15 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     m_consoleOutput->SetFont(monoFont);
     mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
     
+    wxBoxSizer* buttonMiningSizer = new wxBoxSizer(wxHORIZONTAL);
     // Add stop button below console
-    mainSizer->Add(m_stopButton, 0, wxEXPAND | wxALL, 10);
+    buttonMiningSizer->Add(m_hashButton, 1, wxEXPAND | wxALL, 10);
+    buttonMiningSizer->Add(m_resultButton, 1, wxEXPAND | wxALL, 10);
+    buttonMiningSizer->Add(m_connectButton, 1, wxEXPAND | wxALL, 10);
+    buttonMiningSizer->Add(m_stopButton, 1, wxEXPAND | wxALL, 10);
     
     // Add the horizontal button sizer to the main vertical sizer
-    mainSizer->Add(buttonSizer, 0, wxALL | wxEXPAND, 10);
+    mainSizer->Add(buttonMiningSizer, 0, wxALL | wxEXPAND, 10);
     
     // Bind events
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnModify, this, ID_MODIFY_BUTTON);
@@ -142,6 +85,9 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     Bind(wxEVT_BUTTON, 
         wxCommandEventHandler(MiningConfigFrame::OnStop), 
         this, ID_STOP_BUTTON);
+    Bind(wxEVT_BUTTON, &MiningConfigFrame::OnHash, this, ID_HASH_BUTTON);
+    Bind(wxEVT_BUTTON, &MiningConfigFrame::OnResult, this, ID_RESULT_BUTTON);
+    Bind(wxEVT_BUTTON, &MiningConfigFrame::OnConnect, this, ID_CONNECT_BUTTON);
     
     
     SetSizer(mainSizer);
@@ -174,7 +120,7 @@ void MiningConfigFrame::OnModify(wxCommandEvent& event)
     
     UpdateDisplay();
 }
-
+// ------------------------------------------------------------------------------------------------- < OnStart Mining
 void MiningConfigFrame::OnStart(wxCommandEvent& event)
 {
     m_consoleOutput->Clear();
@@ -196,6 +142,9 @@ void MiningConfigFrame::OnStart(wxCommandEvent& event)
         m_startButton->Disable();
         // Show and enable stop button
         m_stopButton->Show();
+        m_hashButton->Show();
+        m_resultButton->Show();
+        m_connectButton->Show();
         Layout(); // Refresh layout to show stop button
         
         // Create and connect timer
@@ -240,12 +189,6 @@ void MiningConfigFrame::OnProcessTimer(wxTimerEvent& event)
     }
 }
 
-void MiningConfigFrame::OnBind(wxCommandEvent& event)
-{
-    wxExecute("./xmr-stak --bind", wxEXEC_SYNC);
-    wxMessageBox("GPU Binding Complete", "Bind GPU", wxOK | wxICON_INFORMATION);
-}
-
 void MiningConfigFrame::OnProcessTerminate(wxProcessEvent& event)
 {
     // Kill process if still active
@@ -269,6 +212,9 @@ void MiningConfigFrame::OnProcessTerminate(wxProcessEvent& event)
         m_modifyButton->Enable();
         m_startButton->Enable();
         m_stopButton->Hide();
+        m_hashButton->Hide();
+        m_resultButton->Hide();
+        m_connectButton->Hide();
         Layout();
     }
 }
@@ -290,6 +236,33 @@ void MiningConfigFrame::OnStop(wxCommandEvent& event)
     }
 }
 
+void MiningConfigFrame::OnHash(wxCommandEvent& event)
+{
+    if (m_process && m_process->GetOutputStream()) {
+        wxTextOutputStream tos(*m_process->GetOutputStream());
+        tos.WriteString("h\n");
+        tos.Flush();
+    }
+}
+
+void MiningConfigFrame::OnResult(wxCommandEvent& event)
+{
+    if (m_process && m_process->GetOutputStream()) {
+        wxTextOutputStream tos(*m_process->GetOutputStream());
+        tos.WriteString("r\n");
+        tos.Flush();
+    }
+}
+
+void MiningConfigFrame::OnConnect(wxCommandEvent& event)
+{
+    if (m_process && m_process->GetOutputStream()) {
+        wxTextOutputStream tos(*m_process->GetOutputStream());
+        tos.WriteString("c\n");
+        tos.Flush();
+    }
+}
+
 
 // Implement the member functions of MyApp
 bool GUIApp::OnInit()
@@ -297,7 +270,7 @@ bool GUIApp::OnInit()
     if (!wxApp::OnInit())
         return false;
 
-    PoolConfig config = readMiningConfig();
+    PoolConfig config = xmrstak::config::readMiningConfig();
     
     if (!config.isValid())
     {
@@ -324,7 +297,7 @@ bool GUIApp::OnInit()
                 wxOK | wxICON_INFORMATION);
 */
     MiningConfigFrame* frame = new MiningConfigFrame(nullptr, wxID_ANY, 
-        "XMR-Stak-CCX", wxDefaultPosition, wxSize(1000, 800));
+        "XMR-Stak-gui-CCX", wxDefaultPosition, wxSize(1000, 800));
     frame->SetPoolInfo(config.getPoolAddress(), config.getWalletAddress());
     frame->Show(true);
     return true;

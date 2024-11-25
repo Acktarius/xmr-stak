@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pool_reader.hpp"
 #include <wx/wx.h>
 #include <tuple>
 #include <string>
@@ -22,43 +23,25 @@ private:
     void OnStart(wxCommandEvent& event);
     void OnModify(wxCommandEvent& event);
     void UpdateDisplay();
-    void OnBind(wxCommandEvent& event);
     void OnProcessTerminate(wxProcessEvent& event);
     void OnProcessTimer(wxTimerEvent& event);
     void OnStop(wxCommandEvent& event);
+    void OnHash(wxCommandEvent& event);
+    void OnResult(wxCommandEvent& event);
+    void OnConnect(wxCommandEvent& event);
+    void OnProcessOutput(wxCommandEvent& event);
     std::string m_pool;
     std::string m_wallet;
     wxStaticText* m_poolText;
     wxStaticText* m_walletText;
     wxTextCtrl* m_consoleOutput;
     wxProcess* m_process;
-    void OnProcessOutput(wxCommandEvent& event);
     wxButton* m_modifyButton;
     wxButton* m_startButton;
     wxButton* m_stopButton;
-};
-
-class PoolConfig
-{
-public:
-    PoolConfig() : m_fileReachable(false) {}
-    PoolConfig(bool fileReachable, const std::string& poolAddress, 
-               const std::string& walletAddress, const std::string& currency)
-        : m_fileReachable(fileReachable)
-        , m_poolAddress(poolAddress)
-        , m_walletAddress(walletAddress)
-        , m_currency(currency) {}
-
-    bool isValid() const { return m_fileReachable; }
-    const std::string& getPoolAddress() const { return m_poolAddress; }
-    const std::string& getWalletAddress() const { return m_walletAddress; }
-    const std::string& getCurrency() const { return m_currency; }
-
-private:
-    bool m_fileReachable;
-    std::string m_poolAddress;
-    std::string m_walletAddress;
-    std::string m_currency;
+    wxButton* m_hashButton;
+    wxButton* m_resultButton;
+    wxButton* m_connectButton;
 };
 
 class GUIApp : public wxApp
