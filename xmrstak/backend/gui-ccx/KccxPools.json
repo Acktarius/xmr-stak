@@ -1,0 +1,22 @@
+{
+    "knownPools": [
+        {
+            "name": "Community Pool",
+            "url": "pool.conceal.network",
+            "port": 3333,
+            "ssl": false
+        },
+        {
+            "name": "Cedric-Crispin",
+            "url": "conceal.cedric-crispin.com",
+            "port": 3364,
+            "ssl": false
+        },
+        {
+            "name": "Cedric-Crispin",
+            "url": "conceal.cedric-crispin.com",
+            "port": 3365,
+            "ssl": true
+        }
+    ]
+}

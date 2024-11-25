@@ -690,6 +690,7 @@ else()
         xmrstak/backend/gui-ccx/gui-ccx.cpp
         xmrstak/backend/gui-ccx/ccx_art.cpp
         xmrstak/backend/gui-ccx/pool_reader.cpp 
+        xmrstak/backend/gui-ccx/KccxPools.cpp
     )
     target_link_options(xmr-stak-gui-ccx PRIVATE
     -L/usr/local/lib

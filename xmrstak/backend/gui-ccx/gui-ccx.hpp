@@ -24,6 +24,7 @@ public:
 private:
     void OnStart(wxCommandEvent& event);
     void OnModify(wxCommandEvent& event);
+    void OnValidate(wxCommandEvent& event);
     void UpdateDisplay();
     void OnProcessTerminate(wxProcessEvent& event);
     void OnProcessTimer(wxTimerEvent& event);
@@ -44,6 +45,8 @@ private:
     wxButton* m_hashButton;
     wxButton* m_resultButton;
     wxButton* m_connectButton;
+    wxButton* m_validateButton;
+    wxRadioBox* m_poolRadio;
 };
 
 class GUIApp : public wxApp

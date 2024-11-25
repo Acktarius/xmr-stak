@@ -249,11 +249,11 @@ void do_guided_pool_config()
 		std::cin.clear();
 		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 		
-		std::cout << "- Enter pool address and port, e.g." << jconf::GetDefaultPool(currency.c_str()) << std::endl;
+		std::cout << "- Enter pool address and port, e.g. " << jconf::GetDefaultPool(currency.c_str()) << std::endl;
 		pool = get_pool_input("or press enter to validate: ",
                      jconf::GetDefaultPool(currency.c_str()));
                      
-		std::cout << std::endl;
+
 	}
 
 	auto userName = params::inst().poolUsername;
