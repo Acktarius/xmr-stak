@@ -45,7 +45,7 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     // Stop Button
     m_stopButton = new wxButton(this, ID_STOP_BUTTON, "Stop Mining");
     m_stopButton->Hide(); // Initially hidden
-    m_hashButton = new wxButton(this, ID_HASH_BUTTON, "Hash");
+    m_hashButton = new wxButton(this, ID_HASH_BUTTON, "Hashrate");
     m_hashButton->Hide();
     m_resultButton = new wxButton(this, ID_RESULT_BUTTON, "Results");
     m_resultButton->Hide();
@@ -188,34 +188,20 @@ void MiningConfigFrame::OnProcessTimer(wxTimerEvent& event)
         }
     }
 }
-
+// ------------------------------------------------------------------------------------------------- < Closing frame = stop Mining
 void MiningConfigFrame::OnProcessTerminate(wxProcessEvent& event)
 {
-    // Kill process if still active
-    if (m_process && wxProcess::Exists(m_process->GetPid())) {
-        wxKill(m_process->GetPid(), wxSIGTERM);
-    }
-
     if (m_process) {
-        wxInputStream* processOutput = m_process->GetInputStream();
-        wxTextInputStream tis(*processOutput);
+        wxKill(m_process->GetPid(), wxSIGTERM);
+        wxMilliSleep(2000);  // Give more time for process to terminate
         
-        while (processOutput->CanRead()) {
-            wxString line = tis.ReadLine();
-            m_consoleOutput->AppendText(line + "\n");
+        // If process is still running, force kill it
+        if (wxProcess::Exists(m_process->GetPid())) {
+            wxKill(m_process->GetPid(), wxSIGKILL);  // SIGKILL is stronger than SIGTERM
         }
         
         delete m_process;
         m_process = nullptr;
-        
-        // Re-enable buttons and hide stop button
-        m_modifyButton->Enable();
-        m_startButton->Enable();
-        m_stopButton->Hide();
-        m_hashButton->Hide();
-        m_resultButton->Hide();
-        m_connectButton->Hide();
-        Layout();
     }
 }
 
@@ -263,6 +249,14 @@ void MiningConfigFrame::OnConnect(wxCommandEvent& event)
     }
 }
 
+bool MiningConfigFrame::Destroy()
+{
+    if (m_process) {
+        wxProcessEvent evt;
+        OnProcessTerminate(evt);
+    }
+    return wxFrame::Destroy();
+}
 
 // Implement the member functions of MyApp
 bool GUIApp::OnInit()

@@ -19,6 +19,8 @@ public:
         UpdateDisplay();
     }
 
+    virtual bool Destroy() override;
+
 private:
     void OnStart(wxCommandEvent& event);
     void OnModify(wxCommandEvent& event);
