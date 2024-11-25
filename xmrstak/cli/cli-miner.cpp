@@ -249,8 +249,8 @@ void do_guided_pool_config()
 		std::cin.clear();
 		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 		
-		std::cout << "- Enter pool address and port, e.g. url:port" << std::endl;
-		pool = get_pool_input("or press enter for default pool:",
+		std::cout << "- Enter pool address and port, e.g." << jconf::GetDefaultPool(currency.c_str()) << std::endl;
+		pool = get_pool_input("or press enter to validate: ",
                      jconf::GetDefaultPool(currency.c_str()));
                      
 		std::cout << std::endl;
@@ -367,9 +367,6 @@ std::string get_pool_input(const char* prompt, const char* default_value) {
     std::string tmp;
     std::cout << prompt << " [" << default_value << "]: " << std::flush;
     std::getline(std::cin, tmp);
-    
-    std::cout << "Received input: '" << tmp << "'" << std::endl;
-    
     if(tmp.empty()) {
         return std::string(default_value);
     }
