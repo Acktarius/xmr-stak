@@ -48,17 +48,11 @@ std::vector<KPool> loadKnownPools(const std::string& jsonPath) {
             kpool.ssl = pool.get("ssl", false).asBool(); // Optional field with default value
             
             Kpools.push_back(kpool);
-            
-            // Debug output
-            std::cout << "Loaded pool: " << kpool.name 
-                      << " (" << kpool.url << ":" << kpool.port 
-                      << ", SSL: " << (kpool.ssl ? "yes" : "no") << ")" << std::endl;
         }
         catch (const Json::Exception& e) {
             std::cerr << "Error parsing pool entry: " << e.what() << std::endl;
         }
     }
 
-    std::cout << "Total pools loaded: " << Kpools.size() << std::endl;
     return Kpools;
 }

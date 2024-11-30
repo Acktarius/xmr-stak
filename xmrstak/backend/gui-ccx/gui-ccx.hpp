@@ -50,7 +50,7 @@ private:
     wxButton* m_resultButton;
     wxButton* m_connectButton;
     wxButton* m_validateButton;
-    wxRadioBox* m_poolRadio;
+    wxRadioBox* m_poolRadio = nullptr;
     enum OutputType {
         NORMAL,
         HASHRATE,

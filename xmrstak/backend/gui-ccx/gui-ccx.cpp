@@ -128,7 +128,7 @@ void MiningConfigFrame::UpdateDisplay()
 {
     m_poolText->SetLabel("Mining Pool: " + wxString(m_pool));
     m_walletText->SetLabel("Wallet: " + wxString(m_wallet));
-    m_sslText->SetLabel("SSL: " + wxString(m_ssl ? "True" : "False"));
+    m_sslText->SetLabel("SSL: " + wxString(m_ssl ? "Yes" : "No"));
     m_mainSizer->Layout();    // Ensure the frame updates properly
 }
 // ------------------------------------------------------------------------------------------------- < OnModify
@@ -145,45 +145,53 @@ void MiningConfigFrame::OnModify(wxCommandEvent& event)
             wxMessageBox("No pools were loaded from the JSON file", "Warning", wxICON_WARNING);
         }
         
-        // Group pools by name and create choices array
-        std::map<std::string, std::vector<KPool> > poolsByName;
+        // Group pools by name for sorting
+        std::map<std::string, std::vector<KPool>> poolsByName;
         for (const auto& pool : pools) {
             poolsByName[pool.name].push_back(pool);
         }
 
-        // Create choices array with headers and pool details
-        wxArrayString choices;
+        // Create formatted choices with aligned columns
+        wxArrayString poolChoices;
+        int matchingIndex = -1;  // Default to -1 if no match found
+        
+        // Add pools in sorted order by pool name
         for (const auto& pair : poolsByName) {
-            const std::string& poolName = pair.first;
-            const std::vector<KPool>& poolList = pair.second;
-            
-            // Add pool name as non-selectable header
-            choices.Add("=== " + poolName + " ===");
-            
-            // Add pool details as selectable options
-            for (const auto& pool : poolList) {
-                choices.Add(wxString::Format("    %s:%d, SSL: %s", 
-                    pool.url.c_str(), pool.port, pool.ssl ? "Yes" : "No"));
-            }
-        }
-
-        // Create radio box with modified choices
-        if (m_poolRadio) {
-            m_poolRadio->Destroy();
-            m_poolRadio = new wxRadioBox(this, wxID_ANY, "Available Pools",
-                                       wxDefaultPosition, wxDefaultSize,
-                                       choices, 0, wxRA_VERTICAL);
-            
-            // Disable header items (pool names)
-            for (size_t i = 0; i < choices.GetCount(); i++) {
-                if (choices[i].StartsWith("===")) {
-                    m_poolRadio->Enable(i, false);
+            for (const auto& pool : pair.second) {
+                // Create the pool string
+                wxString poolUrl = pool.url + ":" + std::to_string(pool.port);
+                poolChoices.Add(poolUrl + (pool.ssl ? " (SSL)" : ""));
+                
+                // Check if this is our current pool
+                if (poolUrl == m_pool && pool.ssl == m_ssl) {
+                    matchingIndex = poolChoices.GetCount() - 1;
                 }
             }
         }
 
-        m_poolRadio->Show();
-        
+        // Debug output
+        wxLogDebug("Found matching index: %d", matchingIndex);
+        wxLogDebug("Total pools: %d", (int)poolChoices.GetCount());
+
+        // Create new radio box
+        wxRadioBox* poolRadio = new wxRadioBox(this, wxID_ANY, 
+            "Available Pools",
+            wxDefaultPosition, wxDefaultSize,
+            poolChoices,
+            1,              // Number of columns (e.g., 1 for single column)
+            wxRA_SPECIFY_COLS);
+
+        // Set selection if we have a match
+        if (matchingIndex != -1) {
+            poolRadio->SetSelection(matchingIndex);
+        }
+
+        // Assign to member variable
+        if (m_poolRadio) {
+            m_poolRadio->Destroy();
+        }
+        m_poolRadio = poolRadio;
+
         // Clear and reset the main sizer
         m_mainSizer->Clear();  // Remove all items
         
@@ -193,8 +201,9 @@ void MiningConfigFrame::OnModify(wxCommandEvent& event)
         m_mainSizer->Add(m_sslText, 0, wxALL, 10);
         m_mainSizer->AddSpacer(10);
         
-        if (m_poolRadio->IsShown())
-            m_mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxALL, 10);
+        // Add the pool radios directly
+        m_mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxTOP, 20);
+
         // Add buttons that should be visible
         if (m_validateButton->IsShown())
             m_mainSizer->Add(m_validateButton, 0, wxEXPAND | wxALL, 10);            
