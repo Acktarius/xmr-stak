@@ -5,6 +5,7 @@
 #include <tuple>
 #include <string>
 #include <wx/process.h>
+#include <wx/textctrl.h>
 
 class MiningConfigFrame : public wxFrame
 {
@@ -25,6 +26,7 @@ public:
 private:
     void OnStart(wxCommandEvent& event);
     void OnModify(wxCommandEvent& event);
+    void OnGoBack(wxCommandEvent& event);
     void OnValidate(wxCommandEvent& event);
     void UpdateDisplay();
     void OnProcessTerminate(wxProcessEvent& event);
@@ -49,7 +51,9 @@ private:
     wxButton* m_hashButton;
     wxButton* m_resultButton;
     wxButton* m_connectButton;
+    wxButton* m_goBackButton;
     wxButton* m_validateButton;
+    wxBoxSizer* m_walletSetup;
     wxRadioBox* m_poolRadio = nullptr;
     enum OutputType {
         NORMAL,
@@ -59,6 +63,8 @@ private:
     };
     OutputType m_currentOutput = NORMAL;
     wxBoxSizer* m_mainSizer;
+    wxTextCtrl* m_walletInput;
+    wxFont m_monoFont;
 };
 
 class GUIApp : public wxApp

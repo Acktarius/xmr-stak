@@ -22,6 +22,7 @@ using xmrstak::config::PoolConfig;
 enum {
     ID_START_BUTTON = wxID_HIGHEST + 1,
     ID_MODIFY_BUTTON,
+    ID_GOBACK_BUTTON,
     ID_VALIDATE_BUTTON,
     ID_PROCESS_OUTPUT = wxID_HIGHEST + 100,
     ID_STOP_BUTTON,
@@ -34,6 +35,7 @@ enum {
 MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxString& title, 
                                      const wxPoint& pos, const wxSize& size)
     : wxFrame(parent, id, title, pos, size)
+    , m_monoFont(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL)
 {
     m_mainSizer = new wxBoxSizer(wxVERTICAL);
     
@@ -51,6 +53,8 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     m_modifyButton = new wxButton(this, ID_MODIFY_BUTTON, "Modify Settings");
     m_validateButton = new wxButton(this, ID_VALIDATE_BUTTON, "Validate");
     m_validateButton->Hide();
+    m_goBackButton = new wxButton(this, ID_GOBACK_BUTTON, "Go Back");
+    m_goBackButton->Hide();
     // Buttons_Mining
     m_startButton = new wxButton(this, ID_START_BUTTON, "Start Mining");
     // Stop Button
@@ -71,21 +75,17 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     m_mainSizer->Add(m_buttonSizer, 0, wxALL | wxEXPAND, 10);
     // Add the console output
     m_consoleOutput = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
-                                   wxDefaultPosition, wxDefaultSize,
+                                   wxDefaultPosition, wxSize(-1, 300),
                                    wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH);
-    // Set a monospace font
-    wxFont monoFont(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
-    m_consoleOutput->SetFont(monoFont);
+    // Use the class member font for console output
+    m_consoleOutput->SetFont(m_monoFont);
     m_consoleOutput->Hide();
-    m_mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
+    m_mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
     // Add the Radio box
 
     // Initialize pointer to null
     m_poolRadio = nullptr;
-
-    // Add validate button
-    m_mainSizer->Add(m_validateButton, 0, wxEXPAND | wxTOP, 50);
-    
+    m_walletInput = nullptr;
     wxBoxSizer* buttonMiningSizer = new wxBoxSizer(wxHORIZONTAL);
     // Add stop button below console
     buttonMiningSizer->Add(m_hashButton, 1, wxEXPAND | wxALL, 10);
@@ -107,6 +107,7 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnHash, this, ID_HASH_BUTTON);
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnResult, this, ID_RESULT_BUTTON);
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnConnect, this, ID_CONNECT_BUTTON);
+    Bind(wxEVT_BUTTON, &MiningConfigFrame::OnGoBack, this, ID_GOBACK_BUTTON);
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnValidate, this, ID_VALIDATE_BUTTON);
     
     SetSizer(m_mainSizer);
@@ -131,6 +132,7 @@ void MiningConfigFrame::OnModify(wxCommandEvent& event)
     m_modifyButton->Hide();
     m_startButton->Hide();
     m_consoleOutput->Hide();
+    m_goBackButton->Show();
     m_validateButton->Show();
     try {
         // Load known pools from JSON
@@ -196,11 +198,22 @@ void MiningConfigFrame::OnModify(wxCommandEvent& event)
         m_mainSizer->AddSpacer(10);
         
         // Add the pool radios directly
-        m_mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxTOP, 20);
+        m_mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, 20);
 
-        // Add buttons that should be visible
-        if (m_validateButton->IsShown())
-            m_mainSizer->Add(m_validateButton, 0, wxEXPAND | wxALL, 10);            
+        // Add wallet input field
+        m_walletSetup = new wxBoxSizer(wxVERTICAL);
+        wxStaticText* walletLabel = new wxStaticText(this, wxID_ANY, "Wallet Address:");
+        m_walletInput = new wxTextCtrl(this, wxID_ANY, m_wallet, 
+                                      wxDefaultPosition, wxSize(400, -1));
+        m_walletInput->SetFont(m_monoFont);
+        m_walletSetup->Add(walletLabel, 0, wxBOTTOM, 5);
+        m_walletSetup->Add(m_walletInput, 0, wxEXPAND);
+        m_mainSizer->Add(m_walletSetup, 0, wxEXPAND | wxALL, 10);
+    // Add stop button below console
+        wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+        buttonSizer->Add(m_goBackButton, 1, wxEXPAND | wxALL, 10);
+        buttonSizer->Add(m_validateButton, 1, wxEXPAND | wxALL, 10);
+        m_mainSizer->Add(buttonSizer, 0, wxALL | wxEXPAND, 10);
         // Force sizer to recalculate
         m_mainSizer->Layout();    // Just update the layout while keeping original size
     }
@@ -213,9 +226,35 @@ void MiningConfigFrame::OnModify(wxCommandEvent& event)
 // ------------------------------------------------------------------------------------------------- < OnStart Mining
 void MiningConfigFrame::OnStart(wxCommandEvent& event)
 {
+    // Clear and rebuild the main layout
+    m_mainSizer->Clear(false);  // false = don't delete windows
+    
+    // Add all elements in correct order
+    m_mainSizer->Add(m_poolText, 0, wxALL, 10);
+    m_mainSizer->Add(m_walletText, 0, wxALL, 10);
+    m_mainSizer->Add(m_sslText, 0, wxALL, 10);
+    m_mainSizer->AddSpacer(10);
+    
+    // Add the button sizer
+    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+    buttonSizer->Add(m_modifyButton, 1, wxEXPAND | wxRIGHT, 5);
+    buttonSizer->Add(m_startButton, 1, wxEXPAND | wxLEFT, 5);
+    m_mainSizer->Add(buttonSizer, 0, wxALL | wxEXPAND, 10);
+    
+    // Show and add console
     m_consoleOutput->Show();
     m_consoleOutput->Clear();
+    m_mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
     
+    // Add mining control buttons
+    wxBoxSizer* miningButtonSizer = new wxBoxSizer(wxHORIZONTAL);
+    miningButtonSizer->Add(m_hashButton, 1, wxEXPAND | wxALL, 10);
+    miningButtonSizer->Add(m_resultButton, 1, wxEXPAND | wxALL, 10);
+    miningButtonSizer->Add(m_connectButton, 1, wxEXPAND | wxALL, 10);
+    miningButtonSizer->Add(m_stopButton, 1, wxEXPAND | wxALL, 10);
+    m_mainSizer->Add(miningButtonSizer, 0, wxALL | wxEXPAND, 10);
+    
+    // Start the mining process
     if (m_process) {
         delete m_process;
     }
@@ -228,15 +267,13 @@ void MiningConfigFrame::OnStart(wxCommandEvent& event)
     long pid = wxExecute(cmd, wxEXEC_ASYNC | wxEXEC_NOHIDE, m_process);
     
     if (pid > 0) {
-        // Disable modify and start buttons
+        // Update button states
         m_modifyButton->Disable();
         m_startButton->Disable();
-        // Show and enable stop button
         m_stopButton->Show();
         m_hashButton->Show();
         m_resultButton->Show();
         m_connectButton->Show();
-        Layout(); // Refresh layout to show stop button
         
         // Create and connect timer
         wxTimer* timer = new wxTimer(this);
@@ -245,6 +282,10 @@ void MiningConfigFrame::OnStart(wxCommandEvent& event)
     } else {
         m_consoleOutput->AppendText("Failed to start mining process\n");
     }
+    
+    // Update layout
+    m_mainSizer->Layout();
+    Layout();
 }
 // ------------------------------------------------------------------------------------------------- < Refresher
 void MiningConfigFrame::OnProcessTimer(wxTimerEvent& event)
@@ -417,16 +458,45 @@ void MiningConfigFrame::OnValidate(wxCommandEvent& event)
         wxMessageBox("Pool selection validated!", "Success", wxICON_INFORMATION);
         
         // Hide validation UI elements and show mining controls
-        m_poolRadio->Hide();
-        m_validateButton->Hide();
+        m_mainSizer->Clear();
         m_modifyButton->Show();
         m_startButton->Show();
-        Layout(); // Refresh the layout
+        m_mainSizer->Layout();
+        UpdateDisplay();
+        //Layout(); // Refresh the layout
     } else {
         wxMessageBox("Please select a pool first", "Error", wxICON_ERROR);
     }
 }
-
+// ------------------------------------------------------------------------------------------------- < GoBack
+void MiningConfigFrame::OnGoBack(wxCommandEvent& event)
+{
+    // Hide modification UI elements
+    m_validateButton->Hide();
+    m_goBackButton->Hide();
+    
+    // Show original buttons
+    m_modifyButton->Show();
+    m_startButton->Show();
+    m_consoleOutput->Show();
+    
+    // Safely destroy pool radio if it exists
+    if (m_poolRadio) {
+        m_poolRadio->Destroy();
+        m_poolRadio = nullptr;
+    }
+    
+    // Safely destroy wallet setup container if it exists
+    if (m_walletSetup) {
+        // This will destroy all children windows in the sizer
+        m_walletSetup->Clear(true);  // true = delete windows
+        m_walletSetup = nullptr;
+    }
+    
+    // Update layout
+    m_mainSizer->Layout();
+    UpdateDisplay();
+}
 // ------------------------------------------------------------------------------------------------- < MAIN
 bool GUIApp::OnInit()
 {
