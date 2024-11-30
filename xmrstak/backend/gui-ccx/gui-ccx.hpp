@@ -51,6 +51,14 @@ private:
     wxButton* m_connectButton;
     wxButton* m_validateButton;
     wxRadioBox* m_poolRadio;
+    enum OutputType {
+        NORMAL,
+        HASHRATE,
+        RESULT,
+        CONNECTION
+    };
+    OutputType m_currentOutput = NORMAL;
+    wxBoxSizer* m_mainSizer;
 };
 
 class GUIApp : public wxApp

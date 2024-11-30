@@ -12,6 +12,7 @@
 #include <wx/string.h>
 #include <wx/txtstrm.h>
 #include <wx/process.h>
+#include <map>
 #include "ccx_art.hpp"
 #include "pool_reader.hpp"
 #include "KccxPools.hpp"
@@ -34,18 +35,18 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
                                      const wxPoint& pos, const wxSize& size)
     : wxFrame(parent, id, title, pos, size)
 {
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+    m_mainSizer = new wxBoxSizer(wxVERTICAL);
     
     // Text displays
     m_poolText = new wxStaticText(this, wxID_ANY, "Mining Pool: ");
     m_walletText = new wxStaticText(this, wxID_ANY, "Wallet: ");
     m_sslText = new wxStaticText(this, wxID_ANY, "SSL: ");
 
-    mainSizer->Add(m_poolText, 0, wxALL, 10);
-    mainSizer->Add(m_walletText, 0, wxALL, 10);
-    mainSizer->Add(m_sslText, 0, wxALL, 10);
+    m_mainSizer->Add(m_poolText, 0, wxALL, 10);
+    m_mainSizer->Add(m_walletText, 0, wxALL, 10);
+    m_mainSizer->Add(m_sslText, 0, wxALL, 10);
     // Add Spacer
-    mainSizer->AddSpacer(10); 
+    m_mainSizer->AddSpacer(10); 
     // Buttons_Pool config
     m_modifyButton = new wxButton(this, ID_MODIFY_BUTTON, "Modify Settings");
     m_validateButton = new wxButton(this, ID_VALIDATE_BUTTON, "Validate");
@@ -67,7 +68,7 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     // Add buttons to horizontal sizer
     m_buttonSizer->Add(m_modifyButton, 1, wxEXPAND | wxRIGHT, 5);
     m_buttonSizer->Add(m_startButton, 1, wxEXPAND | wxLEFT, 5);
-    mainSizer->Add(m_buttonSizer, 0, wxALL | wxEXPAND, 10);
+    m_mainSizer->Add(m_buttonSizer, 0, wxALL | wxEXPAND, 10);
     // Add the console output
     m_consoleOutput = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
                                    wxDefaultPosition, wxDefaultSize,
@@ -76,7 +77,7 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     wxFont monoFont(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
     m_consoleOutput->SetFont(monoFont);
     m_consoleOutput->Hide();
-    mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
+    m_mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
     // Add the Radio box
 
     // Create radio box with initial empty choices
@@ -86,10 +87,10 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
                                 choices, 0, wxRA_VERTICAL);
     m_poolRadio->Hide(); // Initially hidden
 
-    mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxALL, 10);
+    m_mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxTOP, 70);
 
-    // Add validate button (already declared in header)
-    mainSizer->Add(m_validateButton, 0, wxEXPAND | wxTOP, 50);
+    // Add validate button
+    m_mainSizer->Add(m_validateButton, 0, wxEXPAND | wxTOP, 50);
     
     wxBoxSizer* buttonMiningSizer = new wxBoxSizer(wxHORIZONTAL);
     // Add stop button below console
@@ -99,7 +100,7 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     buttonMiningSizer->Add(m_stopButton, 1, wxEXPAND | wxALL, 10);
     
     // Add the horizontal button sizer to the main vertical sizer
-    mainSizer->Add(buttonMiningSizer, 0, wxALL | wxEXPAND, 10);
+    m_mainSizer->Add(buttonMiningSizer, 0, wxALL | wxEXPAND, 10);
     
     // Bind events
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnModify, this, ID_MODIFY_BUTTON);
@@ -114,7 +115,7 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnConnect, this, ID_CONNECT_BUTTON);
     Bind(wxEVT_BUTTON, &MiningConfigFrame::OnValidate, this, ID_VALIDATE_BUTTON);
     
-    SetSizer(mainSizer);
+    SetSizer(m_mainSizer);
     
     // Initialize process pointer
     m_process = nullptr;
@@ -122,19 +123,20 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     // Bind process output event
     Bind(wxEVT_END_PROCESS, &MiningConfigFrame::OnProcessTerminate, this, wxID_ANY);
 }
-
+// ------------------------------------------------------------------------------------------------- < Update Display
 void MiningConfigFrame::UpdateDisplay()
 {
     m_poolText->SetLabel("Mining Pool: " + wxString(m_pool));
     m_walletText->SetLabel("Wallet: " + wxString(m_wallet));
     m_sslText->SetLabel("SSL: " + wxString(m_ssl ? "True" : "False"));
-    Layout(); // Ensure the frame updates properly
+    m_mainSizer->Layout();    // Ensure the frame updates properly
 }
-
+// ------------------------------------------------------------------------------------------------- < OnModify
 void MiningConfigFrame::OnModify(wxCommandEvent& event)
 {
     m_modifyButton->Hide();
     m_startButton->Hide();
+    m_consoleOutput->Hide();
     m_validateButton->Show();
     try {
         // Load known pools from JSON
@@ -143,24 +145,61 @@ void MiningConfigFrame::OnModify(wxCommandEvent& event)
             wxMessageBox("No pools were loaded from the JSON file", "Warning", wxICON_WARNING);
         }
         
-        // Update radio box choices
-        wxArrayString choices;
+        // Group pools by name and create choices array
+        std::map<std::string, std::vector<KPool> > poolsByName;
         for (const auto& pool : pools) {
-            choices.Add(wxString::Format("%s (%s:%d)", 
-                pool.name.c_str(), pool.url.c_str(), pool.port));
+            poolsByName[pool.name].push_back(pool);
         }
 
-        // Properly recreate the radio box
+        // Create choices array with headers and pool details
+        wxArrayString choices;
+        for (const auto& pair : poolsByName) {
+            const std::string& poolName = pair.first;
+            const std::vector<KPool>& poolList = pair.second;
+            
+            // Add pool name as non-selectable header
+            choices.Add("=== " + poolName + " ===");
+            
+            // Add pool details as selectable options
+            for (const auto& pool : poolList) {
+                choices.Add(wxString::Format("    %s:%d, SSL: %s", 
+                    pool.url.c_str(), pool.port, pool.ssl ? "Yes" : "No"));
+            }
+        }
+
+        // Create radio box with modified choices
         if (m_poolRadio) {
             m_poolRadio->Destroy();
             m_poolRadio = new wxRadioBox(this, wxID_ANY, "Available Pools",
-                                        wxDefaultPosition, wxDefaultSize,
-                                        choices, 0, wxRA_VERTICAL);
+                                       wxDefaultPosition, wxDefaultSize,
+                                       choices, 0, wxRA_VERTICAL);
+            
+            // Disable header items (pool names)
+            for (size_t i = 0; i < choices.GetCount(); i++) {
+                if (choices[i].StartsWith("===")) {
+                    m_poolRadio->Enable(i, false);
+                }
+            }
         }
 
         m_poolRadio->Show();
         
-        Layout(); // Refresh the layout
+        // Clear and reset the main sizer
+        m_mainSizer->Clear();  // Remove all items
+        
+        // Re-add all visible elements in correct order
+        m_mainSizer->Add(m_poolText, 0, wxALL, 10);
+        m_mainSizer->Add(m_walletText, 0, wxALL, 10);
+        m_mainSizer->Add(m_sslText, 0, wxALL, 10);
+        m_mainSizer->AddSpacer(10);
+        
+        if (m_poolRadio->IsShown())
+            m_mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxALL, 10);
+        // Add buttons that should be visible
+        if (m_validateButton->IsShown())
+            m_mainSizer->Add(m_validateButton, 0, wxEXPAND | wxALL, 10);            
+        // Force sizer to recalculate
+        m_mainSizer->Layout();    // Just update the layout while keeping original size
     }
     catch (const std::exception& e) {
         wxMessageBox(wxString::Format("Error loading pools: %s", e.what()), "Error", wxICON_ERROR);
@@ -204,7 +243,7 @@ void MiningConfigFrame::OnStart(wxCommandEvent& event)
         m_consoleOutput->AppendText("Failed to start mining process\n");
     }
 }
-
+// ------------------------------------------------------------------------------------------------- < Refresher
 void MiningConfigFrame::OnProcessTimer(wxTimerEvent& event)
 {
     if (m_process) {
@@ -213,6 +252,23 @@ void MiningConfigFrame::OnProcessTimer(wxTimerEvent& event)
             wxTextInputStream tis(*processOutput);
             wxString line;
             
+            // Set color based on command type
+            wxTextAttr style;
+            switch(m_currentOutput) {
+                case HASHRATE:
+                    style.SetTextColour(wxColour(255, 166, 0));  // Orange
+                    break;
+                case RESULT:
+                    style.SetTextColour(wxColour(0, 204, 0));    // Green
+                    break;
+                case CONNECTION:
+                    style.SetTextColour(wxColour(102, 102, 255));  // Purple
+                    break;
+                default:
+                    style.SetTextColour(*wxWHITE);               // White
+            }
+            m_consoleOutput->SetDefaultStyle(style);
+            
             // Read all available output
             while (processOutput->CanRead()) {
                 line = tis.ReadLine();
@@ -220,13 +276,19 @@ void MiningConfigFrame::OnProcessTimer(wxTimerEvent& event)
                     m_consoleOutput->AppendText(line + "\n");
                 }
             }
+            
+            m_currentOutput = NORMAL;  // Reset after processing
         }
         
-        // Also check for error output
+        // Error stream handling remains unchanged
         wxInputStream* processError = m_process->GetErrorStream();
         if (processError && processError->CanRead()) {
             wxTextInputStream tis(*processError);
             wxString line;
+            
+            wxTextAttr errorStyle;
+            errorStyle.SetTextColour(wxColour(150, 0, 0));  // Red color
+            m_consoleOutput->SetDefaultStyle(errorStyle);
             
             while (processError->CanRead()) {
                 line = tis.ReadLine();
@@ -257,6 +319,14 @@ void MiningConfigFrame::OnProcessTerminate(wxProcessEvent& event)
 void MiningConfigFrame::OnStop(wxCommandEvent& event)
 {
     if (m_process) {
+        // Reset output type to ensure white text
+        m_currentOutput = NORMAL;
+        
+        // Set white color explicitly for stop logo
+        wxTextAttr defaultStyle;
+        defaultStyle.SetTextColour(*wxWHITE);
+        m_consoleOutput->SetDefaultStyle(defaultStyle);
+        
         // Display the stop logo
         std::string logo = ccx_art::getStopLogo();
         m_consoleOutput->AppendText(wxString::FromUTF8(logo.c_str()));
@@ -275,10 +345,9 @@ void MiningConfigFrame::OnStop(wxCommandEvent& event)
         
         // Wait for process cleanup
         wxYield(); // Process any pending events
-        wxMilliSleep(10000);
+        wxMilliSleep(15000);
         
         // Hide UI elements
-        m_consoleOutput->Hide();
         m_hashButton->Hide();
         m_resultButton->Hide();
         m_connectButton->Hide();
@@ -292,6 +361,7 @@ void MiningConfigFrame::OnStop(wxCommandEvent& event)
 void MiningConfigFrame::OnHash(wxCommandEvent& event)
 {
     if (m_process && m_process->GetOutputStream()) {
+        m_currentOutput = HASHRATE;
         wxTextOutputStream tos(*m_process->GetOutputStream());
         tos.WriteString("h\n");
         tos.Flush();
@@ -301,6 +371,7 @@ void MiningConfigFrame::OnHash(wxCommandEvent& event)
 void MiningConfigFrame::OnResult(wxCommandEvent& event)
 {
     if (m_process && m_process->GetOutputStream()) {
+        m_currentOutput = RESULT;
         wxTextOutputStream tos(*m_process->GetOutputStream());
         tos.WriteString("r\n");
         tos.Flush();
@@ -310,12 +381,13 @@ void MiningConfigFrame::OnResult(wxCommandEvent& event)
 void MiningConfigFrame::OnConnect(wxCommandEvent& event)
 {
     if (m_process && m_process->GetOutputStream()) {
+        m_currentOutput = CONNECTION;
         wxTextOutputStream tos(*m_process->GetOutputStream());
         tos.WriteString("c\n");
         tos.Flush();
     }
 }
-
+// ------------------------------------------------------------------------------------------------- < Destroy
 bool MiningConfigFrame::Destroy()
 {
     if (m_process) {
@@ -324,7 +396,7 @@ bool MiningConfigFrame::Destroy()
     }
     return wxFrame::Destroy();
 }
-
+// ------------------------------------------------------------------------------------------------- < Validate
 void MiningConfigFrame::OnValidate(wxCommandEvent& event)
 {
     // Get selected pool from radio box
@@ -352,7 +424,7 @@ void MiningConfigFrame::OnValidate(wxCommandEvent& event)
     }
 }
 
-// Implement the member functions of MyApp
+// ------------------------------------------------------------------------------------------------- < MAIN
 bool GUIApp::OnInit()
 {
     if (!wxApp::OnInit())
