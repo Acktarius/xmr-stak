@@ -716,6 +716,12 @@ target_include_directories(xmr-stak-gui-ccx PRIVATE
     ${JSONCPP_INCLUDE_DIRS}
 )
     
+    # Copy GUI resource files
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/xmrstak/backend/gui-ccx/KccxPools.json
+        ${CMAKE_BINARY_DIR}/bin/KccxPools.json
+        COPYONLY
+    )
 endif()
 # Add wxWidgets include directories to your target
 

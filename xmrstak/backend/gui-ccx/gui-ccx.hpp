@@ -13,9 +13,10 @@ public:
                     const wxPoint& pos = wxDefaultPosition, 
                     const wxSize& size = wxDefaultSize);
 
-    void SetPoolInfo(const std::string& pool, const std::string& wallet) {
+    void SetPoolInfo(const std::string& pool, const std::string& wallet, bool ssl) {
         m_pool = pool;
         m_wallet = wallet;
+        m_ssl = ssl;
         UpdateDisplay();
     }
 
@@ -35,10 +36,13 @@ private:
     void OnProcessOutput(wxCommandEvent& event);
     std::string m_pool;
     std::string m_wallet;
+    bool m_ssl;
     wxStaticText* m_poolText;
     wxStaticText* m_walletText;
+    wxStaticText* m_sslText;
     wxTextCtrl* m_consoleOutput;
     wxProcess* m_process;
+    wxBoxSizer* m_buttonSizer;
     wxButton* m_modifyButton;
     wxButton* m_startButton;
     wxButton* m_stopButton;

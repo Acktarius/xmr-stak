@@ -5,7 +5,7 @@
 
 std::vector<KPool> loadKnownPools(const std::string& jsonPath) {
     std::vector<KPool> Kpools;
-    std::ifstream file(jsonPath);
+    std::ifstream file(jsonPath, std::ifstream::binary);
     
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << jsonPath << std::endl;

@@ -1,10 +1,10 @@
 #!/bin/bash
 if [[ ! -d build ]]; then
-echo "not build folder to delete"
+mkdir build
 else
 rm -rf build
-mkdir build
+fi
 cd build
 cmake .. -DCUDA_ENABLE=OFF;
 make install;
-fi
+

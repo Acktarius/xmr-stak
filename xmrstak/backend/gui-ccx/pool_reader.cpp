@@ -65,6 +65,7 @@ PoolConfig readMiningConfig()
             true,
             poolList[0]["pool_address"].asString(),
             poolList[0]["wallet_address"].asString(),
+            poolList[0]["use_tls"].asBool(),
             root["currency"].asString()
         );
     }

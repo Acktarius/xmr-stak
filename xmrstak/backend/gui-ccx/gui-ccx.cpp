@@ -39,9 +39,13 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     // Text displays
     m_poolText = new wxStaticText(this, wxID_ANY, "Mining Pool: ");
     m_walletText = new wxStaticText(this, wxID_ANY, "Wallet: ");
-    
+    m_sslText = new wxStaticText(this, wxID_ANY, "SSL: ");
+
     mainSizer->Add(m_poolText, 0, wxALL, 10);
     mainSizer->Add(m_walletText, 0, wxALL, 10);
+    mainSizer->Add(m_sslText, 0, wxALL, 10);
+    // Add Spacer
+    mainSizer->AddSpacer(10); 
     // Buttons_Pool config
     m_modifyButton = new wxButton(this, ID_MODIFY_BUTTON, "Modify Settings");
     m_validateButton = new wxButton(this, ID_VALIDATE_BUTTON, "Validate");
@@ -58,12 +62,12 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     m_connectButton = new wxButton(this, ID_CONNECT_BUTTON, "Connection");
     m_connectButton->Hide();
     // Create a horizontal sizer for buttons
-    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+    m_buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     
     // Add buttons to horizontal sizer
-    buttonSizer->Add(m_modifyButton, 1, wxEXPAND | wxRIGHT, 5);
-    buttonSizer->Add(m_startButton, 1, wxEXPAND | wxLEFT, 5);
-    mainSizer->Add(buttonSizer, 0, wxALL | wxEXPAND, 10);
+    m_buttonSizer->Add(m_modifyButton, 1, wxEXPAND | wxRIGHT, 5);
+    m_buttonSizer->Add(m_startButton, 1, wxEXPAND | wxLEFT, 5);
+    mainSizer->Add(m_buttonSizer, 0, wxALL | wxEXPAND, 10);
     // Add the console output
     m_consoleOutput = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
                                    wxDefaultPosition, wxDefaultSize,
@@ -79,14 +83,13 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     wxArrayString choices;
     m_poolRadio = new wxRadioBox(this, wxID_ANY, "Available Pools",
                                 wxDefaultPosition, wxDefaultSize,
-                                choices, 1, wxRA_VERTICAL);
+                                choices, 0, wxRA_VERTICAL);
     m_poolRadio->Hide(); // Initially hidden
 
-    // Add to main sizer
     mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxALL, 10);
 
     // Add validate button (already declared in header)
-    mainSizer->Add(m_validateButton, 0, wxEXPAND | wxALL, 10);
+    mainSizer->Add(m_validateButton, 0, wxEXPAND | wxTOP, 50);
     
     wxBoxSizer* buttonMiningSizer = new wxBoxSizer(wxHORIZONTAL);
     // Add stop button below console
@@ -124,17 +127,18 @@ void MiningConfigFrame::UpdateDisplay()
 {
     m_poolText->SetLabel("Mining Pool: " + wxString(m_pool));
     m_walletText->SetLabel("Wallet: " + wxString(m_wallet));
+    m_sslText->SetLabel("SSL: " + wxString(m_ssl ? "True" : "False"));
     Layout(); // Ensure the frame updates properly
 }
 
 void MiningConfigFrame::OnModify(wxCommandEvent& event)
 {
+    m_modifyButton->Hide();
     m_startButton->Hide();
     m_validateButton->Show();
-    
     try {
         // Load known pools from JSON
-        std::vector<KPool> pools = loadKnownPools("./KccxPools.json");
+        std::vector<KPool> pools = loadKnownPools("KccxPools.json");
         if (pools.empty()) {
             wxMessageBox("No pools were loaded from the JSON file", "Warning", wxICON_WARNING);
         }
@@ -151,7 +155,7 @@ void MiningConfigFrame::OnModify(wxCommandEvent& event)
             m_poolRadio->Destroy();
             m_poolRadio = new wxRadioBox(this, wxID_ANY, "Available Pools",
                                         wxDefaultPosition, wxDefaultSize,
-                                        choices, 1, wxRA_VERTICAL);
+                                        choices, 0, wxRA_VERTICAL);
         }
 
         m_poolRadio->Show();
@@ -271,7 +275,7 @@ void MiningConfigFrame::OnStop(wxCommandEvent& event)
         
         // Wait for process cleanup
         wxYield(); // Process any pending events
-        wxMilliSleep(5000);
+        wxMilliSleep(10000);
         
         // Hide UI elements
         m_consoleOutput->Hide();
@@ -340,8 +344,8 @@ void MiningConfigFrame::OnValidate(wxCommandEvent& event)
         // Hide validation UI elements and show mining controls
         m_poolRadio->Hide();
         m_validateButton->Hide();
+        m_modifyButton->Show();
         m_startButton->Show();
-        
         Layout(); // Refresh the layout
     } else {
         wxMessageBox("Please select a pool first", "Error", wxICON_ERROR);
@@ -382,7 +386,7 @@ bool GUIApp::OnInit()
 */
     MiningConfigFrame* frame = new MiningConfigFrame(nullptr, wxID_ANY, 
         "XMR-Stak-gui-CCX", wxDefaultPosition, wxSize(1000, 800));
-    frame->SetPoolInfo(config.getPoolAddress(), config.getWalletAddress());
+    frame->SetPoolInfo(config.getPoolAddress(), config.getWalletAddress(), config.getSsl());
     frame->Show(true);
     return true;
 }

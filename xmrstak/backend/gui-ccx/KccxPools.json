@@ -17,6 +17,18 @@
             "url": "conceal.cedric-crispin.com",
             "port": 3365,
             "ssl": true
+        },
+        {
+            "name": "Fastpool",
+            "url": "us.fastpool.xyz",
+            "port": 10167,
+            "ssl": false
+        },
+        {
+            "name": "Fastpool",
+            "url": "us.fastpool.xyz",
+            "port": 20000,
+            "ssl": true
         }
     ]
 }
