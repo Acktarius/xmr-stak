@@ -80,14 +80,8 @@ MiningConfigFrame::MiningConfigFrame(wxWindow* parent, wxWindowID id, const wxSt
     m_mainSizer->Add(m_consoleOutput, 1, wxEXPAND | wxALL, 10);
     // Add the Radio box
 
-    // Create radio box with initial empty choices
-    wxArrayString choices;
-    m_poolRadio = new wxRadioBox(this, wxID_ANY, "Available Pools",
-                                wxDefaultPosition, wxDefaultSize,
-                                choices, 0, wxRA_VERTICAL);
-    m_poolRadio->Hide(); // Initially hidden
-
-    m_mainSizer->Add(m_poolRadio, 0, wxEXPAND | wxTOP, 70);
+    // Initialize pointer to null
+    m_poolRadio = nullptr;
 
     // Add validate button
     m_mainSizer->Add(m_validateButton, 0, wxEXPAND | wxTOP, 50);
