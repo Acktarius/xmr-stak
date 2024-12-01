@@ -684,6 +684,27 @@ find_package(wxWidgets 3.0 REQUIRED COMPONENTS core base)
 if(!wxWidgets_FOUND)
     message(WARNING "wxWidgets not found. xmr-stak-gui-ccx will not be built.")
 else()
+    find_package(Git QUIET)
+    if(GIT_FOUND)
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} describe --tags --always
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            OUTPUT_VARIABLE GUI_CCX_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            OUTPUT_VARIABLE GUI_CCX_COMMIT_HASH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+    else()
+        set(GUI_CCX_VERSION "v1.0.0")
+        set(GUI_CCX_COMMIT_HASH "unknown")
+    endif()
+
     include(${wxWidgets_USE_FILE})
     find_package(Threads REQUIRED)
     add_executable(xmr-stak-gui-ccx 
@@ -715,6 +736,7 @@ target_include_directories(xmr-stak-gui-ccx PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${wxWidgets_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
+    ${CMAKE_BINARY_DIR}/generated/gui-ccx
 )
     
     # Copy GUI resource files
@@ -723,6 +745,13 @@ target_include_directories(xmr-stak-gui-ccx PRIVATE
         ${CMAKE_BINARY_DIR}/bin/KccxPools.json
         COPYONLY
     )
+    # Configure version header for GUI-CCX
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/xmrstak/backend/gui-ccx/version.hpp.in
+        ${CMAKE_BINARY_DIR}/generated/gui-ccx/version.hpp
+        @ONLY
+    )
+
 endif()
 # Add wxWidgets include directories to your target
 

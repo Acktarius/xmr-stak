@@ -1,3 +1,4 @@
+#include "version.hpp"
 #include "gui-ccx.hpp"
 #include <wx/sizer.h>
 #include <wx/button.h>
@@ -572,7 +573,9 @@ bool GUIApp::OnInit()
                 wxOK | wxICON_INFORMATION);
 */
     MiningConfigFrame* frame = new MiningConfigFrame(nullptr, wxID_ANY, 
-        "XMR-Stak-gui-CCX", wxDefaultPosition, wxSize(1000, 800));
+        wxString::Format("XMR-Stak-gui-CCX %s", 
+            xmrstak::gui::VERSION),
+        wxDefaultPosition, wxSize(1000, 800));
     frame->SetPoolInfo(config.getPoolAddress(), config.getWalletAddress(), config.getSsl());
     frame->Show(true);
     return true;
