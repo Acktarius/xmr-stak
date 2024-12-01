@@ -23,6 +23,7 @@ public:
     const std::string& getWalletAddress() const { return m_walletAddress; }
     bool& getSsl() { return m_ssl; }
     const std::string& getCurrency() const { return m_currency; }
+    bool isSsl() const { return m_ssl; }
 
 private:
     bool m_fileReachable;

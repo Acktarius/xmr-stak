@@ -27,7 +27,19 @@
         {
             "name": "Fastpool",
             "url": "us.fastpool.xyz",
-            "port": 20000,
+            "port": 10160,
+            "ssl": true
+        },
+        {
+            "name": "Fastpool",
+            "url": "uk.fastpool.xyz",
+            "port": 10167,
+            "ssl": false
+        },
+        {
+            "name": "Fastpool",
+            "url": "uk.fastpool.xyz",
+            "port": 10160,
             "ssl": true
         }
     ]

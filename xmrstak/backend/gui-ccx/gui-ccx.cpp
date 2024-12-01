@@ -16,6 +16,7 @@
 #include "ccx_art.hpp"
 #include "pool_reader.hpp"
 #include "KccxPools.hpp"
+#include "pool_writer.hpp"
 
 using xmrstak::config::PoolConfig;
 
@@ -445,28 +446,69 @@ void MiningConfigFrame::OnValidate(wxCommandEvent& event)
 {
     // Get selected pool from radio box
     int selection = m_poolRadio->GetSelection();
-    if (selection != wxNOT_FOUND) {
-        wxString selectedPool = m_poolRadio->GetString(selection);
-        
-        // TODO: Add your validation logic here
-        // For example:
-        // 1. Parse the selected pool string
-        // 2. Validate the connection
-        // 3. Update the configuration
-        
-        // Show success message
-        wxMessageBox("Pool selection validated!", "Success", wxICON_INFORMATION);
-        
-        // Hide validation UI elements and show mining controls
-        m_mainSizer->Clear();
-        m_modifyButton->Show();
-        m_startButton->Show();
-        m_mainSizer->Layout();
-        UpdateDisplay();
-        //Layout(); // Refresh the layout
-    } else {
+    if (selection == wxNOT_FOUND) {
         wxMessageBox("Please select a pool first", "Error", wxICON_ERROR);
+        return;
     }
+
+    // Get and validate wallet address
+    wxString walletAddress = m_walletInput->GetValue().Trim();
+    if (walletAddress.IsEmpty() || !walletAddress.StartsWith("ccx7") || walletAddress.Length() < 98) {
+        wxString errorMsg = walletAddress.IsEmpty() ? "Please enter a wallet address" :
+                           !walletAddress.StartsWith("ccx7") ? "Wallet address must start with 'ccx7'" :
+                           "Wallet address must be at least 98 characters long";
+        wxMessageBox(errorMsg, "Error", wxICON_ERROR);
+        return;
+    }
+
+    // Parse the selected pool string (format: "url:port (SSL)")
+    wxString selectedPool = m_poolRadio->GetString(selection);
+    bool isSSL = selectedPool.EndsWith(" (SSL)");
+    
+    // Remove the SSL suffix if present
+    if (isSSL) {
+        selectedPool = selectedPool.BeforeLast('(').Trim();
+    }
+
+    // Store the validated values
+    m_pool = selectedPool;
+    m_wallet = walletAddress;
+    m_ssl = isSSL;
+    
+    // Write the configuration to pools.txt
+    PoolConfig newConfig(true, m_pool.c_str(), m_wallet.c_str(), m_ssl, "conceal");
+    if (!xmrstak::config::writeMiningConfig(newConfig)) {
+        wxMessageBox("Failed to save configuration to pools.txt", "Error", wxICON_ERROR);
+        return;
+    }
+    
+    // Hide modification UI elements
+    m_validateButton->Hide();
+    m_goBackButton->Hide();
+    
+    // Show original buttons
+    m_modifyButton->Show();
+    m_startButton->Show();
+    //m_consoleOutput->Show();
+    
+    // Safely destroy pool radio if it exists
+    if (m_poolRadio) {
+        m_poolRadio->Destroy();
+        m_poolRadio = nullptr;
+    }
+    
+    // Safely destroy wallet setup container if it exists
+    if (m_walletSetup) {
+        m_walletSetup->Clear(true);  // true = delete windows
+        m_walletSetup = nullptr;
+    }
+
+    // Update layout
+    m_mainSizer->Layout();
+    UpdateDisplay();
+
+    // Show success message
+    wxMessageBox("Configuration updated successfully!", "Success", wxICON_INFORMATION);
 }
 // ------------------------------------------------------------------------------------------------- < GoBack
 void MiningConfigFrame::OnGoBack(wxCommandEvent& event)
@@ -478,7 +520,7 @@ void MiningConfigFrame::OnGoBack(wxCommandEvent& event)
     // Show original buttons
     m_modifyButton->Show();
     m_startButton->Show();
-    m_consoleOutput->Show();
+    //m_consoleOutput->Show();
     
     // Safely destroy pool radio if it exists
     if (m_poolRadio) {
