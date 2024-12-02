@@ -26,6 +26,7 @@ This fork aims to streamline mining operations, particularly for Conceal Network
 - Simplified pool configuration and validation during setup
 - User-friendly GUI interface for Conceal mining operations
 - Streamlined pool management and basic mining controls
+- An easy ON/OFF approach, to easely launch mining during down time
 
 ## Installation Ubuntu/Debian Systems
 *in a terminal,*
@@ -38,6 +39,7 @@ sudo apt install libmicrohttpd-dev libssl-dev cmake build-essential \
 ### Build Instructions
 
 First, clone the repository:
+*in a location you won't need root access, if you want to launch with icon*
 ```bash
 git clone https://github.com/conceal-network/conceal-xmr-stak.git
 cd conceal-xmr-stak
@@ -58,9 +60,9 @@ Option 2: Automated Build Script for AMD user
 ## Usage
 
 ### Initial Setup
-Binaries will be located in `bin` folder
+Binaries will be located in `build/bin` folder
 ```bash
-cd bin
+cd buil/bin
 ```
 First-time configuration:
 ```bash
@@ -68,7 +70,7 @@ First-time configuration:
 ```
 Follow the interactive prompts to configure your mining settings. `Ctrl+C` when your done.
 
-### Daily Operations
+### Dai to day Operations
 
 For regular mining operations, use the GUI interface:
 ```bash
