@@ -680,7 +680,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(JSONCPP jsoncpp)
 
 # Find wxWidgets
-find_package(wxWidgets 3.0 REQUIRED COMPONENTS core base)
+find_package(wxWidgets REQUIRED COMPONENTS core base)
 if(!wxWidgets_FOUND)
     message(WARNING "wxWidgets not found. xmr-stak-gui-ccx will not be built.")
 else()
@@ -712,8 +712,6 @@ else()
     -L/usr/local/lib
     )
     target_link_libraries(xmr-stak-gui-ccx 
-        wx_baseu-3.2
-        wx_gtk3u_core-3.2
         pthread
         xmr-stak-backend
         ${JSONCPP_LIBRARIES}  
