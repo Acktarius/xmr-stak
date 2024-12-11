@@ -32,7 +32,7 @@ This fork aims to streamline mining operations, particularly for Conceal Network
 *in a terminal,*
 ### Dependencies
 ```bash
-sudo apt install libmicrohttpd-dev libssl-dev cmake build-essential \
+sudo apt install ocl-icd-opencl-dev libmicrohttpd-dev libssl-dev cmake build-essential \
     libhwloc-dev pkg-config libjsoncpp-dev libwxgtk3.0-gtk3-dev
 ```
 
