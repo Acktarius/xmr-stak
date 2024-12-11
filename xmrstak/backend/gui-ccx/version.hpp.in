@@ -3,7 +3,5 @@
 namespace xmrstak {
     namespace gui {
         constexpr const char* VERSION = "@GUI_CCX_VERSION@";
-        constexpr const char* GIT_COMMIT_HASH = "@GUI_CCX_COMMIT_HASH@";
-        constexpr const char* BUILD_TYPE = "@CMAKE_BUILD_TYPE@";
     }
 } 

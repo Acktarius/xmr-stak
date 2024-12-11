@@ -687,25 +687,16 @@ else()
     find_package(Git QUIET)
     if(GIT_FOUND)
         execute_process(
-            COMMAND ${GIT_EXECUTABLE} describe --tags --always
+            COMMAND ${GIT_EXECUTABLE} describe --tags
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             OUTPUT_VARIABLE GUI_CCX_VERSION
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
         )
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE GUI_CCX_COMMIT_HASH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-        )
-        # Add quotes around the git values
-        set(GUI_CCX_VERSION "\"${GUI_CCX_VERSION}\"")
-        set(GUI_CCX_COMMIT_HASH "\"${GUI_CCX_COMMIT_HASH}\"")
+        # Remove the extra quotes - let the template handle the quoting
+        set(GUI_CCX_VERSION "${GUI_CCX_VERSION}")
     else()
-        set(GUI_CCX_VERSION "\"v1.0.0\"")
-        set(GUI_CCX_COMMIT_HASH "\"unknown\"")
+        set(GUI_CCX_VERSION "v1.0.0")
     endif()
 
     include(${wxWidgets_USE_FILE})
