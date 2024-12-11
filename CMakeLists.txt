@@ -700,9 +700,12 @@ else()
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
         )
+        # Add quotes around the git values
+        set(GUI_CCX_VERSION "\"${GUI_CCX_VERSION}\"")
+        set(GUI_CCX_COMMIT_HASH "\"${GUI_CCX_COMMIT_HASH}\"")
     else()
-        set(GUI_CCX_VERSION "v1.0.0")
-        set(GUI_CCX_COMMIT_HASH "unknown")
+        set(GUI_CCX_VERSION "\"v1.0.0\"")
+        set(GUI_CCX_COMMIT_HASH "\"unknown\"")
     endif()
 
     include(${wxWidgets_USE_FILE})

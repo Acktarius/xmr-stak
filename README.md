@@ -34,12 +34,26 @@ This fork aims to streamline mining operations, particularly for Conceal Network
 ```bash
 sudo apt install ocl-icd-opencl-dev libmicrohttpd-dev libssl-dev cmake build-essential \
     libhwloc-dev pkg-config libjsoncpp-dev libwxgtk3.0-gtk3-dev
+wget https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.16.tar.gz
+tar -xvf libmicrohttpd-0.9.16.tar.gz
+cd libmicrohttpd-0.9.16
+./configure
+make
+make install
+cd ..
+wget https://download.open-mpi.org/release/hwloc/v2.8/hwloc-2.8.0.tar.gz
+tar -xvf hwloc-2.8.0.tar.gz
+cd hwloc-2.8.
+./configure
+make
+make install
+cd ..
+rm *.gz
 ```
 
 ### Build Instructions
 
 First, clone the repository:
-*in a location you won't need root access, if you want to launch with icon*
 ```bash
 git clone https://github.com/Acktarius/xmr-stak.git
 cd conceal-xmr-stak
