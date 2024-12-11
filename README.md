@@ -41,7 +41,7 @@ sudo apt install libmicrohttpd-dev libssl-dev cmake build-essential \
 First, clone the repository:
 *in a location you won't need root access, if you want to launch with icon*
 ```bash
-git clone https://github.com/conceal-network/conceal-xmr-stak.git
+git clone https://github.com/Acktarius/xmr-stak.git
 cd conceal-xmr-stak
 ```
 
@@ -70,7 +70,7 @@ First-time configuration:
 ```
 Follow the interactive prompts to configure your mining settings. `Ctrl+C` when your done.
 
-### Dai to day Operations
+### Day to day Operations
 
 For regular mining operations, use the GUI interface:
 ```bash
