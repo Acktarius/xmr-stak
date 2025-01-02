@@ -1,6 +1,6 @@
 #!/bin/bash
 # Shortcut installer for xmr-stak-gui-ccx for Ubuntu users
-# Copyright (c) 2024, Acktarius
+# Copyright (c) 2024-2025, Acktarius
 
 # Check if script is run as root
 if [ "$EUID" -ne 0 ]; then
