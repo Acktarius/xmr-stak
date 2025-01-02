@@ -30,7 +30,7 @@ Type=Application
 Name=Xmr-Stak-gui-CCX
 Comment=XMR-Stak GUI for Conceal Mining
 Path=${SCRIPT_DIR}/build/bin
-Exec=pkexec --keep-cwd ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
+Exec=pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
 Icon=${SCRIPT_DIR}/doc/_img/xmr-stak-gui-ccx.png
 Terminal=false
 Categories=System;
@@ -52,7 +52,7 @@ cat > /usr/share/polkit-1/actions/org.xmrstak.guiccx.policy << EOF
     <defaults>
       <allow_any>auth_admin</allow_any>
       <allow_inactive>auth_admin</allow_inactive>
-      <allow_active>auth_admin</allow_active>
+      <allow_active>auth_admin_keep_session</allow_active>
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx</annotate>
     <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
