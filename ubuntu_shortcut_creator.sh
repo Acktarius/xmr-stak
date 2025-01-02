@@ -29,7 +29,7 @@ Type=Application
 Name=Xmr-Stak-gui-CCX
 Comment=XMR-Stak GUI for Conceal Mining
 Path=${SCRIPT_DIR}/build/bin
-Exec=pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
+Exec=pkexec --set-cwd=${SCRIPT_DIR}/build/bin env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
 Icon=${SCRIPT_DIR}/doc/_img/xmr-stak-gui-ccx.png
 Terminal=false
 Categories=System;
@@ -71,7 +71,6 @@ cat > /usr/share/polkit-1/actions/org.xmrstak.guiccx.policy << EOF
 EOF
 
 # Set correct permissions
-chmod +x "${REAL_HOME}/.local/share/applications/xmr-stak-gui-ccx.desktop"
 chown ${SCRIPT_OWNER}:${SCRIPT_GROUP} "${REAL_HOME}/.local/share/applications/xmr-stak-gui-ccx.desktop"
 
 # Update desktop database for the user
