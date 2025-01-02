@@ -30,7 +30,7 @@ Type=Application
 Name=Xmr-Stak-gui-CCX
 Comment=XMR-Stak GUI for Conceal Mining
 Path=${SCRIPT_DIR}/build/bin
-Exec=pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
+Exec=pkexec ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx --keep-cwd
 Icon=${SCRIPT_DIR}/doc/_img/xmr-stak-gui-ccx.png
 Terminal=false
 Categories=System;
