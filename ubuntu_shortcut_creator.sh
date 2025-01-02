@@ -15,20 +15,6 @@ REAL_USER=${SUDO_USER:-$USER}
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-# Create wrapper script
-cat > "${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx-wrapper.sh" << 'EOF'
-#!/bin/bash
-# Get the current user's environment
-export $(xargs -0 -a "/proc/$PPID/environ")
-export XAUTHORITY=$HOME/.Xauthority
-export DISPLAY=:0
-export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-cd "$(dirname "$0")"
-./xmr-stak-gui-ccx
-EOF
-
-chmod +x "${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx-wrapper.sh"
-
 # Create user applications directory if it doesn't exist
 mkdir -p "${REAL_HOME}/.local/share/applications"
 
@@ -39,14 +25,13 @@ Version=1.0
 Type=Application
 Name=Xmr-Stak-gui-CCX
 Comment=XMR-Stak GUI for Conceal Mining
-Exec=pkexec ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx-wrapper.sh
+Exec=pkexec ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
 Icon=${SCRIPT_DIR}/doc/_img/xmr-stak-gui-ccx.png
 Terminal=false
 Categories=System;
 Keywords=Mining;Conceal;CCX;Crypto;
 NoDisplay=false
 Hidden=false
-X-GNOME-Autostart-enabled=true
 EOF
 
 # Create polkit policy file
@@ -64,8 +49,18 @@ cat > /usr/share/polkit-1/actions/org.xmrstak.guiccx.policy << EOF
       <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin</allow_active>
     </defaults>
-    <annotate key="org.freedesktop.policykit.exec.path">${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx-wrapper.sh</annotate>
-    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+    <annotate key="org.freedesktop.policykit.exec.path">${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx</annotate>
+  </action>
+
+  <action id="org.xmrstak.miner">
+    <description>Run XMR-Stak Miner</description>
+    <message>Authentication is required to run XMR-Stak Miner</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">${SCRIPT_DIR}/build/bin/xmr-stak</annotate>
   </action>
 </policyconfig>
 EOF
