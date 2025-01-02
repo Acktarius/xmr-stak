@@ -15,13 +15,27 @@ REAL_USER=${SUDO_USER:-$USER}
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-# Get ownership of SCRIPT_DIR
-# SCRIPT_OWNER=$(stat -c '%U' "${SCRIPT_DIR}")
-# SCRIPT_GROUP=$(stat -c '%G' "${SCRIPT_DIR}")
+# Create xmrstak group if it doesn't exist
+groupadd -f xmrstak
+
+# Add the real user to xmrstak group
+usermod -a -G xmrstak "$REAL_USER"
+
+# Set directory ownership and permissions
+chown -R root:xmrstak "${SCRIPT_DIR}"
+chmod -R 775 "${SCRIPT_DIR}"  # rwxrwxr-x
+
+# Create sudoers rule for xmrstak group
+cat > /etc/sudoers.d/xmrstak << EOF
+# Allow members of group xmrstak to execute xmr-stak-gui-ccx
+%xmrstak ALL=(root) NOPASSWD: ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
+EOF
+
+# Set correct permissions for sudoers file
+chmod 0440 /etc/sudoers.d/xmrstak
 
 # Create user applications directory if it doesn't exist
 mkdir -p "${REAL_HOME}/.local/share/applications"
-
 # Create application launcher
 cat > "${REAL_HOME}/.local/share/applications/xmr-stak-gui-ccx.desktop" << EOF
 [Desktop Entry]
@@ -30,7 +44,7 @@ Type=Application
 Name=Xmr-Stak-gui-CCX
 Comment=XMR-Stak GUI for Conceal Mining
 Path=${SCRIPT_DIR}/build/bin
-Exec=pkexec --keep-cwd ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
+Exec=sudo ${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx
 Icon=${SCRIPT_DIR}/doc/_img/xmr-stak-gui-ccx.png
 Terminal=false
 Categories=System;
@@ -39,34 +53,25 @@ NoDisplay=false
 Hidden=false
 EOF
 
-# Create polkit policy file
-cat > /usr/share/polkit-1/actions/org.xmrstak.guiccx.policy << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE policyconfig PUBLIC
- "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
- "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
-<policyconfig>
-  <action id="org.xmrstak.guiccx">
-    <description>Run XMR-Stak GUI CCX</description>
-    <message>Authentication is required to run XMR-Stak GUI CCX</message>
-    <defaults>
-      <allow_any>auth_admin</allow_any>
-      <allow_inactive>auth_admin</allow_inactive>
-      <allow_active>auth_admin_keep_session</allow_active>
-    </defaults>
-    <annotate key="org.freedesktop.policykit.exec.path">${SCRIPT_DIR}/build/bin/xmr-stak-gui-ccx</annotate>
-    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
-  </action>
-</policyconfig>
-EOF
+# Set correct ownership for .desktop file
+# chown ${REAL_USER}:${REAL_USER} "${REAL_HOME}/.local/share/applications/xmr-stak-gui-ccx.desktop"
 
-# Set correct permissions
-chown ${REAL_USER}:${REAL_USER} "${REAL_HOME}/.local/share/applications/xmr-stak-gui-ccx.desktop"
-
-# Update desktop database for the user
+# Update desktop database
 update-desktop-database "${REAL_HOME}/.local/share/applications"
 
-# Final notification
+# Final notifications
 zenity --info \
     --title="Setup Complete" \
-    --text="XMR-Stak GUI CCX has been added to your applications menu."
+    --text="XMR-Stak GUI CCX has been added to your applications menu.\n\nIMPORTANT: You need to log out and log back in for the new group permissions to take effect."
+
+# Optionally ask for immediate logout
+zenity --question \
+    --title="Log Out Now?" \
+    --text="Would you like to log out now to apply the new permissions?" \
+    --ok-label="Log Out Now" \
+    --cancel-label="Later"
+
+if [ $? -eq 0 ]; then
+    # User clicked "Log Out Now"
+    pkill -KILL -u "$REAL_USER"
+fi
