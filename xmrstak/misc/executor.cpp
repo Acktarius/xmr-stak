@@ -571,6 +571,8 @@ void executor::ex_main()
 		pools.emplace_back(i + 1, params.poolURL.c_str(), params.poolUsername.c_str(), params.poolRigid.c_str(), params.poolPasswd.c_str(), 9.9, false, params.poolUseTls, "", params.nicehashMode);
 	}
 
+	// Only add donate pool when dev donation is enabled; pool is unmaintained and would cause connection loss/errors otherwise.
+	if(fDevDonationLevel > 0.0)
 	switch(jconf::inst()->GetCurrentCoinSelection().GetDescription(0).GetMiningAlgo())
 	{
 	case cryptonight_heavy:

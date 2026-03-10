@@ -503,8 +503,6 @@ __launch_bounds__(XMR_STAK_THREADS * 4)
 	uint32_t a, d[2], idx0;
 	uint32_t t1[2], t2[2], res;
 
-	float conc_var;
-
 	uint32_t tweak1_2[2];
 	if(ALGO == cryptonight_monero || ALGO == cryptonight_aeon || ALGO == cryptonight_ipbc || ALGO == cryptonight_stellite || ALGO == cryptonight_masari || ALGO == cryptonight_bittube2)
 	{

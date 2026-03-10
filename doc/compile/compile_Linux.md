@@ -112,6 +112,34 @@ cmake -DCUDA_HOST_COMPILER=/usr/bin/gcc-5 ..
 
 - You need 1 Gb RAM to compile (a bit less might be enough, 512 Mb isn't). 
 
+### Creating a distribution tarball (.tar.gz)
+
+You do **not** need to ship the full source tree. The binary embeds config templates; on first run the miner creates `config.txt`, `pools.txt`, `nvidia.txt`, `amd.txt`, `cpu.txt` in the current directory.
+
+Build and then pack only the runtime artifacts:
+
+```bash
+    cd /path/to/xmr-stak
+    mkdir -p build && cd build
+    cmake .. -DCUDA_ENABLE=ON -DOpenCL_ENABLE=ON
+    make -j$(nproc)
+```
+
+Create a distribution directory and copy the binary plus any backend libraries that were built:
+
+```bash
+    VERSION=1.0
+    DIST=xmr-stak-${VERSION}-linux
+    mkdir -p "${DIST}"
+    cp bin/xmr-stak "${DIST}/"
+    [ -f bin/libxmrstak_cuda_backend.so ] && cp bin/libxmrstak_cuda_backend.so "${DIST}/"
+    [ -f bin/libxmrstak_opencl_backend.so ] && cp bin/libxmrstak_opencl_backend.so "${DIST}/"
+    echo "Run ./xmr-stak for first-time config generation." > "${DIST}/README.txt"
+    tar czvf "${DIST}.tar.gz" "${DIST}"
+```
+
+Ship **xmr-stak** plus every **libxmrstak_*_backend.so** present in `build/bin/`. End users extract the tarball, run `./xmr-stak`, and follow the prompts to create pool and device configs.
+
 ### To do a generic and static build for a system without gcc 5.1+
 ```
     cmake -DCMAKE_LINK_STATIC=ON -DXMR-STAK_COMPILE=generic .

@@ -124,6 +124,7 @@ class autoAdjust
 
 			bool useCryptonight_r_wow = ::jconf::inst()->GetCurrentCoinSelection().GetDescription(1).GetMiningAlgo() == cryptonight_r_wow;
 
+			// Default tuning: used by all AMD GPUs not matched below (RDNA/RDNA2 e.g. 680M, RX 6000/7000, etc.)
 			// 8 threads per block (this is a good value for the most gpus)
 			uint32_t default_workSize = 8;
 			size_t minFreeMem = 128u * byteToMiB;
