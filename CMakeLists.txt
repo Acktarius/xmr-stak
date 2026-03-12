@@ -360,9 +360,20 @@ endif()
 
 option(MICROHTTPD_ENABLE "Enable or disable the requirement of microhttp (http daemon)" ON)
 if(MICROHTTPD_ENABLE)
+    if(DEFINED ENV{MICROHTTPD_ROOT})
+        file(TO_CMAKE_PATH "$ENV{MICROHTTPD_ROOT}" _mthd_root)
+        set(MICROHTTPD_ROOT "${_mthd_root}" CACHE PATH "microhttpd root" FORCE)
+    endif()
+    if(MICROHTTPD_ROOT)
+        set(_mthd_include "${MICROHTTPD_ROOT}/include")
+        set(_mthd_lib "${MICROHTTPD_ROOT}/lib")
+    endif()
     find_path(MTHD_INCLUDE_DIR
         NAMES
             microhttpd.h
+        HINTS
+            ${_mthd_include}
+            ${MICROHTTPD_ROOT}
         PATHS
             /opt/local
             /usr/local
@@ -376,6 +387,9 @@ if(MICROHTTPD_ENABLE)
         NAMES
             microhttpd
             libmicrohttpd.lib
+        HINTS
+            ${_mthd_lib}
+            ${MICROHTTPD_ROOT}
         PATHS
             ENV "MICROHTTPD_ROOT"
         PATH_SUFFIXES
@@ -413,9 +427,14 @@ endif()
 
 option(HWLOC_ENABLE "Enable or disable the requirement of hwloc" ON)
 if(HWLOC_ENABLE)
+    if(DEFINED ENV{HWLOC_ROOT})
+        set(HWLOC_ROOT "$ENV{HWLOC_ROOT}" CACHE PATH "hwloc root" FORCE)
+    endif()
     find_path(HWLOC_INCLUDE_DIR
         NAMES
             hwloc.h
+        HINTS
+            ${HWLOC_ROOT}
         PATHS
             /opt/local
             /usr/local
@@ -429,6 +448,8 @@ if(HWLOC_ENABLE)
         NAMES
             libhwloc.lib
             hwloc
+        HINTS
+            ${HWLOC_ROOT}
         PATHS
             ENV "HWLOC_ROOT"
         PATH_SUFFIXES
@@ -692,14 +713,17 @@ else()
     # this rule is used if the install prefix is the build directory
     install(CODE "MESSAGE(\"xmr-stak installed to folder 'build/bin'\nrun_$./xmr-stak for initial setup\nrun_$./xmr-stak-gui-ccx (feature for Concealers)\")")
 endif()
-#JsonCPP
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP jsoncpp)
-
+#JsonCPP and GUI (Concealers) — optional on Windows (PkgConfig/wxWidgets often not present)
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(JSONCPP jsoncpp)
+else()
+    set(JSONCPP_FOUND FALSE)
+endif()
 # Find wxWidgets
-find_package(wxWidgets REQUIRED COMPONENTS core base)
-if(!wxWidgets_FOUND)
-    message(WARNING "wxWidgets not found. xmr-stak-gui-ccx will not be built.")
+find_package(wxWidgets QUIET COMPONENTS core base)
+if(NOT wxWidgets_FOUND OR NOT PkgConfig_FOUND OR NOT JSONCPP_FOUND)
+    message(WARNING "wxWidgets or jsoncpp not found. xmr-stak-gui-ccx will not be built.")
 else()
     find_package(Git QUIET)
     if(GIT_FOUND)

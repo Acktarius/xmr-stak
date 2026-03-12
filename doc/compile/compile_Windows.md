@@ -94,10 +94,13 @@ Do not follow old information that you need the AMD APP SDK. AMD has removed the
 - Sometimes Windows will change the directory to `C:\Users\USERNAME\source\` instead of `C:\Users\USERNAME\xmr-stak-<version>\`. If that's the case execute `cd C:\Users\USERNAME\xmr-stak-<version>` followed by:
   ```
   mkdir build
-
   cd build
-
-  set CMAKE_PREFIX_PATH=C:\xmr-stak-dep\hwloc;C:\xmr-stak-dep\libmicrohttpd;C:\xmr-stak-dep\openssl
+  ```
+- Set the dependency paths. Run each line separately:
+  ```
+  set MICROHTTPD_ROOT=C:\xmr-stak-dep\libmicrohttpd
+  set HWLOC_ROOT=C:\xmr-stak-dep\hwloc
+  set OPENSSL_ROOT_DIR=C:\xmr-stak-dep\openssl
   ```
 
 ### CMake
